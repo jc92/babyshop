@@ -1,0 +1,878 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import {
+  defaultProfile,
+  type BudgetTier,
+  type PreferenceProfile,
+} from "@/data/preferences";
+import {
+  categories,
+  milestones,
+  products,
+  type CategoryId,
+  type MilestoneId,
+  type ProductSummary,
+} from "@/data/catalog";
+import { rankProducts } from "@/lib/recommendation";
+const CalendarView = dynamic(() => import("@/components/CalendarView"), { ssr: false });
+
+type TimelineFilter = "all" | MilestoneId;
+type ActiveView = "profile" | "timeline";
+
+const timelinePalette = [
+  {
+    gradient: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)",
+    halo: "rgba(99, 102, 241, 0.25)",
+  },
+  {
+    gradient: "linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)",
+    halo: "rgba(14, 165, 233, 0.25)",
+  },
+  {
+    gradient: "linear-gradient(135deg, #10B981 0%, #34D399 100%)",
+    halo: "rgba(16, 185, 129, 0.25)",
+  },
+  {
+    gradient: "linear-gradient(135deg, #F59E0B 0%, #F97316 100%)",
+    halo: "rgba(249, 115, 22, 0.25)",
+  },
+  {
+    gradient: "linear-gradient(135deg, #F43F5E 0%, #EC4899 100%)",
+    halo: "rgba(244, 63, 94, 0.25)",
+  },
+];
+
+const defaultBabyProfile = {
+  nickname: "",
+  hospital: "",
+  provider: "",
+  householdSetup: "Apartment",
+  careNetwork: "Parents only",
+  medicalNotes: "",
+  birthDate: "", // Empty if not yet born
+};
+
+type SectionId = "plan" | "baby" | "timeline" | "curated";
+
+export default function Home() {
+  const [profile, setProfile] = useState<PreferenceProfile>(defaultProfile);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<CategoryId[]>([
+    "nursing",
+    "sleeping",
+    "feeding",
+  ]);
+  const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("all");
+  const [activeMilestoneId, setActiveMilestoneId] =
+    useState<MilestoneId>("prenatal");
+  const [activeSection, setActiveSection] = useState<SectionId>("plan");
+  const [babyProfile, setBabyProfile] = useState(defaultBabyProfile);
+
+  // Calculate reference date: use birth date if baby is born, otherwise use due date
+  const referenceDate = useMemo(() => {
+    if (babyProfile.birthDate) {
+      return new Date(babyProfile.birthDate);
+    }
+    return new Date(profile.dueDate);
+  }, [babyProfile.birthDate, profile.dueDate]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/profile", {
+          method: "GET",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch profile");
+        }
+
+        const data = await response.json();
+        if (isMounted && data?.data) {
+          setProfile((current) => ({
+            ...current,
+            ...(data.data.plan as Partial<PreferenceProfile>),
+          }));
+          setBabyProfile((current) => ({
+            ...current,
+            ...(data.data.baby as typeof defaultBabyProfile),
+          }));
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          plan: {
+            dueDate: profile.dueDate,
+            babyGender: profile.babyGender,
+            budget: profile.budget,
+            colorPalette: profile.colorPalette,
+            materialFocus: profile.materialFocus,
+            ecoPriority: profile.ecoPriority,
+          },
+          baby: babyProfile,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save profile");
+      }
+
+      setSaveMessage("Profile saved");
+    } catch (error) {
+      console.error(error);
+      setSaveMessage("Unable to save profile right now");
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
+  };
+
+  const timelineMilestones = useMemo(() => {
+    if (timelineFilter === "all") {
+      return milestones;
+    }
+    return milestones.filter((milestone) => milestone.id === timelineFilter);
+  }, [timelineFilter]);
+
+  const recommended = useMemo(
+    () =>
+      rankProducts(products, {
+        ...profile,
+        preferredCategories: selectedCategories,
+      }),
+    [profile, selectedCategories],
+  );
+
+  const budgetCopy: Record<BudgetTier, string> = {
+    essentials: "Focus on core necessities under $120/mo.",
+    balanced: "Balanced mix of essentials and a few premium splurges.",
+    premium: "Curated premium gear with room for upgrades.",
+  };
+
+  const activeMilestone = useMemo(
+    () =>
+      milestones.find((milestone) => milestone.id === activeMilestoneId) ??
+      milestones[0],
+    [activeMilestoneId],
+  );
+
+  const activeMilestoneProducts = useMemo(() => {
+    if (!activeMilestone) {
+      return [] as ProductSummary[];
+    }
+    return products
+      .filter((product) => product.milestoneIds.includes(activeMilestone.id))
+      .sort((a, b) => b.rating - a.rating);
+  }, [activeMilestone]);
+
+  const sidebarViews: {
+    id: ActiveView;
+    label: string;
+    description: string;
+  }[] = [
+    {
+      id: "profile",
+      label: "Profile overview",
+      description: "Plan settings and baby details",
+    },
+    {
+      id: "timeline",
+      label: "Timeline & curation",
+      description: "Roadmap, insights, curated picks",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <header className="border-b border-slate-200 bg-white/75 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-6 py-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-3xl font-semibold text-slate-900">Nestlings Monthly</h1>
+              <p className="text-sm text-slate-600">
+                Intelligent baby essentials subscription planner for new parents.
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+                <p className="font-medium">Current plan: {profile.budget}</p>
+                <p className="text-xs text-slate-500">{budgetCopy[profile.budget]}</p>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-500">
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
+                  <span className="size-1 rounded-full bg-emerald-400" />
+                  Always-on planner
+                </span>
+                <span>No sign-in required</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            {[{
+              id: "plan" as SectionId,
+              label: "Plan settings",
+            },
+            {
+              id: "baby" as SectionId,
+              label: "Baby profile",
+            },
+            {
+              id: "timeline" as SectionId,
+              label: "Timeline roadmap",
+            },
+            {
+              id: "curated" as SectionId,
+              label: "Curated picks",
+            }].map((section) => {
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setActiveSection(section.id)}
+                  className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                    isActive
+                      ? "border-indigo-500 bg-indigo-500 text-white shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                  }`}
+                >
+                  {section.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl space-y-10 px-6 py-10">
+        {activeSection === "plan" && (
+          <section className="space-y-6 rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-2xl shadow-indigo-100/50 backdrop-blur">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-500">
+                  <span className="size-1.5 rounded-full bg-indigo-400" />
+                  Plan settings
+                </span>
+                <h2 className="text-2xl font-semibold text-slate-900">Tailor your monthly roadmap</h2>
+                <p className="text-sm text-slate-600">
+                  Tune budget, palette, and sustainability guardrails. Updates ripple across recommendations instantly.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
+                  <span className="size-1 rounded-full bg-emerald-400" />
+                  Adaptive curation
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
+                  <span className="size-1 rounded-full bg-amber-400" />
+                  Budget guardrails
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-[1.2fr_1fr]">
+              <form className="grid gap-4 text-sm md:grid-cols-2">
+                <label className="flex flex-col gap-2">
+                  <span className="text-slate-700">Due date</span>
+                  <input
+                    type="date"
+                    value={profile.dueDate}
+                    onChange={(event) =>
+                      setProfile((current) => ({
+                        ...current,
+                        dueDate: event.target.value,
+                      }))
+                    }
+                    className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-slate-700">Baby gender</span>
+                  <select
+                    value={profile.babyGender}
+                    onChange={(event) =>
+                      setProfile((current) => ({
+                        ...current,
+                        babyGender: event.target.value as PreferenceProfile["babyGender"],
+                      }))
+                    }
+                    className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  >
+                    <option value="surprise">We’ll find out at birth</option>
+                    <option value="girl">Girl</option>
+                    <option value="boy">Boy</option>
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-slate-700">Monthly budget</span>
+                  <select
+                    value={profile.budget}
+                    onChange={(event) =>
+                      setProfile((current) => ({
+                        ...current,
+                        budget: event.target.value as PreferenceProfile["budget"],
+                      }))
+                    }
+                    className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  >
+                    <option value="essentials">Essentials</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-slate-700">Color palette</span>
+                  <select
+                    value={profile.colorPalette}
+                    onChange={(event) =>
+                      setProfile((current) => ({
+                        ...current,
+                        colorPalette: event.target.value as PreferenceProfile["colorPalette"],
+                      }))
+                    }
+                    className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  >
+                    <option value="neutral">Cozy neutrals</option>
+                    <option value="pastel">Soft pastels</option>
+                    <option value="bold">Bold, modern pops</option>
+                    <option value="warm">Sunset warm tones</option>
+                    <option value="cool">Coastal cool tones</option>
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-slate-700">Material focus</span>
+                  <select
+                    value={profile.materialFocus}
+                    onChange={(event) =>
+                      setProfile((current) => ({
+                        ...current,
+                        materialFocus: event.target.value as PreferenceProfile["materialFocus"],
+                      }))
+                    }
+                    className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  >
+                    <option value="organic">Organic & natural fibers</option>
+                    <option value="performance">Performance & easy clean</option>
+                    <option value="recycled">Recycled & low-waste</option>
+                    <option value="classic">Classic mix</option>
+                  </select>
+                </label>
+
+                <label className="flex flex-row items-center gap-3 rounded-md border border-slate-200 px-4 py-3 shadow-sm">
+                  <input
+                    type="checkbox"
+                    checked={profile.ecoPriority}
+                    onChange={(event) =>
+                      setProfile((current) => ({
+                        ...current,
+                        ecoPriority: event.target.checked,
+                      }))
+                    }
+                    className="size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">
+                      Prioritize eco-friendly picks
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Highlight products with verified sustainable materials and packaging.
+                    </p>
+                  </div>
+                </label>
+              </form>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleSaveProfile}
+                  disabled={isSaving}
+                  className={`rounded-full px-5 py-2 text-sm font-medium text-white shadow-sm transition ${
+                    isSaving ? "bg-slate-400" : "bg-indigo-500 hover:bg-indigo-600"
+                  }`}
+                >
+                  {isSaving ? "Saving..." : "Save profile"}
+                </button>
+                {saveMessage && (
+                  <p className="text-sm text-slate-500">{saveMessage}</p>
+                )}
+              </div>
+
+              <aside className="space-y-4 rounded-lg border border-indigo-100 bg-indigo-50/60 p-4 text-sm text-indigo-900">
+                <h3 className="text-base font-semibold text-indigo-950">
+                  Monthly subscription snapshot
+                </h3>
+                <p>
+                  We assemble a monthly shipment covering essentials for your upcoming
+                  milestone. Every box includes digital guidance, reorder reminders, and
+                  affiliate-exclusive discounts.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-3">
+                    <span className="mt-[2px] inline-flex size-2 rounded-full bg-indigo-500" />
+                    <div>
+                      <p className="font-medium">Dynamic curation</p>
+                      <p className="text-xs text-indigo-700">
+                        Agent re-evaluates reviews daily to ensure top-rated safety gear.
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-[2px] inline-flex size-2 rounded-full bg-indigo-500" />
+                    <div>
+                      <p className="font-medium">Affordability guardrails</p>
+                      <p className="text-xs text-indigo-700">
+                        Bundles stay within your target monthly spend, factoring in upcoming big-ticket buys.
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-[2px] inline-flex size-2 rounded-full bg-indigo-500" />
+                    <div>
+                      <p className="font-medium">At-a-glance timeline</p>
+                      <p className="text-xs text-indigo-700">
+                        Your dashboard calendar shows when each product should arrive and why it matters for that milestone.
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+              </aside>
+            </div>
+          </section>
+        )}
+
+        {activeSection === "baby" && (
+          <section className="rounded-3xl border border-slate-200/60 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-6 shadow-xl">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-500">
+                  <span className="size-1.5 rounded-full bg-rose-400" />
+                  Baby profile
+                </span>
+                <h2 className="text-2xl font-semibold text-slate-900">Capture the little details</h2>
+                <p className="text-sm text-slate-600">
+                  These notes guide product sizing, cadence reminders, and milestone storytelling.
+                </p>
+              </div>
+              <div className="hidden sm:block">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-rose-200 blur-3xl opacity-30" />
+                  <div className="relative rounded-full border border-rose-100 bg-white px-4 py-2 text-xs font-medium text-rose-500">
+                    New memories, organized
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 text-sm md:grid-cols-2">
+              <label className="flex flex-col gap-2">
+                <span className="text-slate-700">Birth date (optional)</span>
+                <input
+                  type="date"
+                  value={babyProfile.birthDate}
+                  onChange={(event) =>
+                    setBabyProfile((current) => ({
+                      ...current,
+                      birthDate: event.target.value,
+                    }))
+                  }
+                  className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+                <span className="text-xs text-slate-500">Leave empty if not yet born (uses due date)</span>
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-slate-700">Baby nickname</span>
+                <input
+                  type="text"
+                  placeholder="Baby Bee"
+                  value={babyProfile.nickname}
+                  onChange={(event) =>
+                    setBabyProfile((current) => ({
+                      ...current,
+                      nickname: event.target.value,
+                    }))
+                  }
+                  className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-slate-700">Birth hospital</span>
+                <input
+                  type="text"
+                  placeholder="City Women’s Hospital"
+                  value={babyProfile.hospital}
+                  onChange={(event) =>
+                    setBabyProfile((current) => ({
+                      ...current,
+                      hospital: event.target.value,
+                    }))
+                  }
+                  className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-slate-700">Provider / pediatrician</span>
+                <input
+                  type="text"
+                  placeholder="Dr. Rivera"
+                  value={babyProfile.provider}
+                  onChange={(event) =>
+                    setBabyProfile((current) => ({
+                      ...current,
+                      provider: event.target.value,
+                    }))
+                  }
+                  className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-slate-700">Household setup</span>
+                <select
+                  value={babyProfile.householdSetup}
+                  onChange={(event) =>
+                    setBabyProfile((current) => ({
+                      ...current,
+                      householdSetup: event.target.value,
+                    }))
+                  }
+                  className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                >
+                  <option value="Apartment">Apartment</option>
+                  <option value="Single-family home">Single-family home</option>
+                  <option value="Shared housing">Shared housing</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-slate-700">Care network</span>
+                <select
+                  value={babyProfile.careNetwork}
+                  onChange={(event) =>
+                    setBabyProfile((current) => ({
+                      ...current,
+                      careNetwork: event.target.value,
+                    }))
+                  }
+                  className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                >
+                  <option value="Parents only">Parents only</option>
+                  <option value="Parents + grandparents">Parents + grandparents</option>
+                  <option value="Parents + nanny">Parents + nanny</option>
+                  <option value="Other caregivers">Other caregivers</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-slate-700">Medical notes</span>
+                <textarea
+                  rows={3}
+                  placeholder="Allergies, birth considerations, or safety concerns"
+                  value={babyProfile.medicalNotes}
+                  onChange={(event) =>
+                    setBabyProfile((current) => ({
+                      ...current,
+                      medicalNotes: event.target.value,
+                    }))
+                  }
+                  className="rounded-md border border-slate-200 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </label>
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+                className={`rounded-full px-5 py-2 text-sm font-medium text-white shadow-sm transition ${
+                  isSaving ? "bg-slate-400" : "bg-indigo-500 hover:bg-indigo-600"
+                }`}
+              >
+                {isSaving ? "Saving..." : "Save baby profile"}
+              </button>
+            </div>
+            <p className="mt-4 text-xs text-slate-500">
+              These details stay private—we use them only to tailor the onboarding checklist, reminder cadence, and sizing recommendations.
+            </p>
+          </section>
+        )}
+
+        {activeSection === "timeline" && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold text-slate-900">Timeline overview</h2>
+              <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-xs font-medium text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => setTimelineMode("gantt")}
+                  className={`rounded-full px-4 py-1 transition ${
+                    timelineMode === "gantt"
+                      ? "bg-indigo-500 text-white shadow-sm"
+                      : "text-slate-600 hover:text-indigo-600"
+                  }`}
+                >
+                  Timeline
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimelineMode("calendar")}
+                  className={`rounded-full px-4 py-1 transition ${
+                    timelineMode === "calendar"
+                      ? "bg-indigo-500 text-white shadow-sm"
+                      : "text-slate-600 hover:text-indigo-600"
+                  }`}
+                >
+                  Calendar
+                </button>
+              </div>
+            </div>
+
+            {timelineMode === "gantt" ? (
+              <Timeline
+                timelineFilter={timelineFilter}
+                onFilterChange={setTimelineFilter}
+                milestones={milestones}
+                itemsPalette={timelinePalette}
+                activeMilestoneId={activeMilestoneId}
+                onSelectMilestone={(id) => setActiveMilestoneId(id as MilestoneId)}
+                referenceDate={referenceDate}
+              />
+            ) : (
+              <CalendarView
+                milestones={timelineMilestones}
+                activeMilestoneId={activeMilestoneId}
+                onSelectMilestone={(id) => setActiveMilestoneId(id)}
+                referenceDate={referenceDate}
+              />
+            )}
+          </div>
+        )}
+
+        {activeSection === "timeline" && (
+          <section className="grid gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg/20">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Milestone insights</h2>
+                <p className="text-sm text-slate-600">
+                  Dive deeper into the selected milestone with curated products, timeline notes, and agent rationale.
+                </p>
+              </div>
+              <span className="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                {activeMilestone.label}
+              </span>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+              <div className="space-y-4">
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
+                  <h3 className="text-base font-semibold text-slate-900">What to expect</h3>
+                  <p className="mt-2 text-sm text-slate-600">{activeMilestone.description}</p>
+                  <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2">
+                    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">
+                        Time frame
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">
+                        {activeMilestone.monthRange[0]}–{activeMilestone.monthRange[1]} months
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">
+                        Upcoming delivery
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">
+                        {activeMilestoneProducts.length} curated items queued
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-slate-900">
+                      Recommended items
+                    </h3>
+                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Sorted by rating
+                    </span>
+                  </div>
+                  <ul className="mt-4 space-y-3">
+                    {activeMilestoneProducts.map((product) => (
+                      <li
+                        key={product.id}
+                        className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-sm text-slate-600 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-slate-900">
+                            {product.name}
+                          </p>
+                          <span className="text-xs font-semibold text-slate-500">
+                            {product.rating.toFixed(1)} ★
+                          </span>
+                        </div>
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          {product.category} · ${product.price}
+                        </p>
+                        <p className="mt-2 text-sm">
+                          {product.reviewSummary}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <aside className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/70 p-5 shadow-sm">
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Agent rationale
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Our curation agent weighs developmental needs, budget, safety reviews, and your aesthetic preferences when recommending items for this milestone.
+                  </p>
+                </div>
+                <div className="space-y-3 text-sm text-slate-600">
+                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/60 p-3">
+                    <p className="text-xs uppercase tracking-wide text-indigo-500">
+                      Safety & timing checks
+                    </p>
+                    <p className="mt-1">Alerts you when to schedule installs or recall checks ahead of baby reaching a new stage.</p>
+                  </div>
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+                    <p className="text-xs uppercase tracking-wide text-emerald-500">
+                      Budget guardrails
+                    </p>
+                    <p className="mt-1">Balances monthly spend with upcoming major purchases like car seats or nursery furniture upgrades.</p>
+                  </div>
+                  <div className="rounded-lg border border-sky-100 bg-sky-50/60 p-3">
+                    <p className="text-xs uppercase tracking-wide text-sky-500">
+                      Style fidelity
+                    </p>
+                    <p className="mt-1">Keeps to your chosen palette and materials, suggesting swaps if the perfect match is out of stock.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSection("timeline");
+                    const curatedSection = document.getElementById("curated");
+                    curatedSection?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="inline-flex items-center justify-center rounded-full border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow-sm transition hover:border-indigo-400 hover:text-indigo-700"
+                >
+                  Jump to curated picks
+                </button>
+              </aside>
+            </div>
+          </section>
+        )}
+
+        {activeSection === "curated" && (
+          <section
+            id="curated"
+            className="grid gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg/20"
+          >
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Curated picks</h2>
+                <p className="text-sm text-slate-600">
+                  Agent-ranked products tuned to your preferences. Swap categories to adapt the subscription mix.
+                </p>
+              </div>
+              <div className="grid gap-2 text-sm md:grid-cols-2 lg:grid-cols-3">
+                {categories.map((category) => {
+                  const isActive = selectedCategories.includes(category.id);
+                  return (
+                    <label
+                      key={category.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50/60"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isActive}
+                        onChange={() =>
+                          setSelectedCategories((current) =>
+                            isActive
+                              ? current.filter((item) => item !== category.id)
+                              : [...current, category.id],
+                          )
+                        }
+                        className="size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-slate-700">{category.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {recommended.map((item) => (
+                <article
+                  key={item.product.id}
+                  className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">
+                        {item.product.brand}
+                      </p>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        {item.product.name}
+                      </h3>
+                    </div>
+                    <span className="rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
+                      ${item.product.price}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-700">{item.product.reviewSummary}</p>
+                  <div className="text-xs text-slate-500">
+                    <p className="font-semibold text-slate-600">Why it’s here</p>
+                    <p>{item.rationale}</p>
+                  </div>
+                  <div className="mt-auto flex items-center justify-between text-xs font-medium">
+                    <span className="text-slate-500">
+                      Milestones: {item.product.milestoneIds.map((id) => id.replace("month", "Month ")).join(", ")}
+                    </span>
+                    <a
+                      href={item.product.affiliateUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-md border border-indigo-200 px-3 py-1 text-indigo-600 transition hover:bg-indigo-50"
+                    >
+                      View offer
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}
