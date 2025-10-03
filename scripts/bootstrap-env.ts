@@ -79,7 +79,7 @@ async function main() {
   console.log("\n5. Pulling environment variables into .env.local...\n");
   execSync("vercel env pull .env.local", { stdio: "inherit" });
 
-  console.log("\nAll done! You can now run `npm run dev` to test authentication locally.\n");
+  console.log("\nAll done! You can now run `pnpm dev` to test authentication locally.\n");
   await rl.close();
 }
 

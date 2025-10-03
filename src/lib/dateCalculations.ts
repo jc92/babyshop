@@ -52,3 +52,46 @@ export function formatDateForCalendar(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
+/**
+ * Normalize arbitrary date strings to an ISO (YYYY-MM-DD) value suitable for HTML date inputs.
+ */
+export function toIsoDateString(value?: string | null): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  const parsed = Date.parse(trimmed);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+
+  return new Date(parsed).toISOString().split('T')[0];
+}
+
+/**
+ * Format a stored ISO date string for display without introducing timezone drift.
+ */
+export function formatDateForDisplay(value?: string | null, locale?: string): string | null {
+  const iso = toIsoDateString(value);
+  if (!iso) {
+    return null;
+  }
+
+  const [year, month, day] = iso.split('-').map((part) => Number.parseInt(part, 10));
+  if ([year, month, day].some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString(locale ?? undefined);
+}

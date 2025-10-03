@@ -24,7 +24,15 @@ const sampleProducts = [
     rating: 4.5,
     reviewCount: 128,
     affiliateUrl: "https://amazon.com/bodysuit",
-    inStock: true
+    inStock: true,
+    aiCategoryIds: ["care-organization"],
+    periodStartMonth: 0,
+    periodEndMonth: 6,
+    reviewSources: [
+      { source: "Amazon" },
+      { source: "BabyGearLab" }
+    ],
+    safetyNotes: "Layer over diapers only; avoid loose blankets in crib.",
   },
   {
     name: "Premium Baby Monitor",
@@ -46,7 +54,15 @@ const sampleProducts = [
     rating: 4.8,
     reviewCount: 89,
     affiliateUrl: "https://amazon.com/monitor",
-    inStock: true
+    inStock: true,
+    aiCategoryIds: ["wellness-monitoring", "mobility-safety"],
+    periodStartMonth: 0,
+    periodEndMonth: 24,
+    reviewSources: [
+      { source: "Wirecutter", url: "https://www.nytimes.com/wirecutter/reviews/best-video-baby-monitors/" },
+      { source: "Babylist" }
+    ],
+    safetyNotes: "Remind caregivers monitors are not medical devices; keep cords 3ft from crib.",
   },
   {
     name: "Eco-Friendly Diaper Bag",
@@ -68,7 +84,15 @@ const sampleProducts = [
     rating: 4.3,
     reviewCount: 67,
     affiliateUrl: "https://amazon.com/diaperbag",
-    inStock: true
+    inStock: true,
+    aiCategoryIds: ["care-organization", "travel-ready"],
+    periodStartMonth: 0,
+    periodEndMonth: 24,
+    reviewSources: [
+      { source: "Lucie's List" },
+      { source: "Fatherly" }
+    ],
+    safetyNotes: "Distribute weight evenly to reduce caregiver strain; clip on stroller only if approved by manufacturer.",
   },
   {
     name: "Luxury Stroller System",
@@ -90,7 +114,15 @@ const sampleProducts = [
     rating: 4.9,
     reviewCount: 45,
     affiliateUrl: "https://amazon.com/stroller",
-    inStock: true
+    inStock: true,
+    aiCategoryIds: ["mobility-safety", "travel-ready"],
+    periodStartMonth: 0,
+    periodEndMonth: 36,
+    reviewSources: [
+      { source: "Car Seats for the Littles" },
+      { source: "What to Expect" }
+    ],
+    safetyNotes: "Encourage CPST car seat check; reference stroller recall registry.",
   },
   {
     name: "Organic Baby Food Starter Kit",
@@ -112,9 +144,27 @@ const sampleProducts = [
     rating: 4.6,
     reviewCount: 156,
     affiliateUrl: "https://amazon.com/babyfood",
-    inStock: true
+    inStock: true,
+    aiCategoryIds: ["feeding-tools"],
+    periodStartMonth: 4,
+    periodEndMonth: 12,
+    reviewSources: [
+      { source: "Solid Starts" },
+      { source: "The Bump" }
+    ],
+    safetyNotes: "Emphasize pediatrician consult before solids; store pouches refrigerated after opening.",
   }
 ];
+
+const toTextArrayLiteral = (values?: string[] | null): string => {
+  if (!values || values.length === 0) {
+    return "{}";
+  }
+  const escaped = values.map((value) =>
+    `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+  );
+  return `{${escaped.join(',')}}`;
+};
 
 // POST /api/products/seed - Seed the products table with sample data
 export async function POST() {
@@ -129,24 +179,45 @@ export async function POST() {
     await sql`DELETE FROM products`;
 
     // Insert sample products
-    const insertPromises = sampleProducts.map(product => 
-      sql`
+    const insertPromises = sampleProducts.map(async (product) => {
+      const result = await sql`
         INSERT INTO products (
           name, description, category, subcategory, brand, image_url,
           price_cents, currency, start_date, end_date, age_range_months_min,
           age_range_months_max, milestone_ids, tags, eco_friendly, premium,
-          rating, review_count, affiliate_url, in_stock
+          rating, review_count, affiliate_url, in_stock,
+          period_start_month, period_end_month, review_sources, safety_notes, external_review_urls
         ) VALUES (
           ${product.name}, ${product.description}, ${product.category}, 
           ${product.subcategory}, ${product.brand}, ${product.imageUrl},
           ${product.priceCents}, ${product.currency}, ${product.startDate}, 
           ${product.endDate}, ${product.ageRangeMonthsMin}, ${product.ageRangeMonthsMax},
-          ${JSON.stringify(product.milestoneIds)}, ${JSON.stringify(product.tags)}, ${product.ecoFriendly}, 
+          ${toTextArrayLiteral(product.milestoneIds)}::text[],
+          ${toTextArrayLiteral(product.tags)}::text[],
+          ${product.ecoFriendly}, 
           ${product.premium}, ${product.rating}, ${product.reviewCount}, 
-          ${product.affiliateUrl}, ${product.inStock}
+          ${product.affiliateUrl}, ${product.inStock},
+          ${product.periodStartMonth ?? null}, ${product.periodEndMonth ?? null},
+          ${JSON.stringify(product.reviewSources ?? [])}, ${product.safetyNotes || null},
+          ${JSON.stringify(product.reviewSources ?? [])}
         )
-      `
-    );
+        RETURNING id
+      `;
+
+      const insertedProduct = result.rows[0];
+
+      if (insertedProduct && product.aiCategoryIds && product.aiCategoryIds.length > 0) {
+        await Promise.all(
+          product.aiCategoryIds.map((categoryId) =>
+            sql`
+              INSERT INTO product_ai_categories (product_id, ai_category_id)
+              VALUES (${insertedProduct.id}, ${categoryId})
+              ON CONFLICT (product_id, ai_category_id) DO NOTHING
+            `,
+          ),
+        );
+      }
+    });
 
     await Promise.all(insertPromises);
 

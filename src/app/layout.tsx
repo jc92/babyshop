@@ -1,17 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppProviders from "./providers";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import AiAdvisorChat from "@/components/AiAdvisorChat";
 
 export const metadata: Metadata = {
   title: "Nestlings Monthly | Baby Essentials Planner",
@@ -25,11 +15,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
+        suppressHydrationWarning={true}
       >
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          <>
+            {children}
+            <AiAdvisorChat />
+          </>
+        </AppProviders>
       </body>
     </html>
   );

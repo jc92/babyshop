@@ -1,5 +1,7 @@
-const { sql } = require('@vercel/postgres');
-require('dotenv').config({ path: '.env.local' });
+import { sql } from '@vercel/postgres';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
 
 async function runMigration() {
   try {
@@ -76,11 +78,124 @@ async function runMigration() {
         review_count INTEGER DEFAULT 0,
         affiliate_url TEXT,
         in_stock BOOLEAN DEFAULT TRUE,
+        period_start_month INTEGER,
+        period_end_month INTEGER,
+        review_sources JSONB DEFAULT '[]'::jsonb,
+        safety_notes TEXT,
+        external_review_urls JSONB DEFAULT '[]'::jsonb,
+        source_url TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `;
+    await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS period_start_month INTEGER;`;
+    await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS period_end_month INTEGER;`;
+    await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS review_sources JSONB DEFAULT '[]'::jsonb;`;
+    await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS safety_notes TEXT;`;
+    await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS external_review_urls JSONB DEFAULT '[]'::jsonb;`;
+    await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS source_url TEXT;`;
     console.log('✅ Products table created');
+
+    console.log('🧭 Creating ai_categories table...');
+    await sql`
+      CREATE TABLE IF NOT EXISTS ai_categories (
+        id TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        description TEXT,
+        best_practices TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    console.log('✅ ai_categories table ready');
+
+    const standardAiCategories = [
+      {
+        id: 'sleep-support',
+        label: 'Sleep Support',
+        description: 'Sleep surfaces, bedtime routines, and soothing gear to maintain safe sleep habits.',
+        bestPractices: 'Follow AAP safe sleep guidelines, prioritize flat, firm surfaces, avoid loose bedding, and schedule transition reminders for weight/height limits.',
+      },
+      {
+        id: 'feeding-tools',
+        label: 'Feeding Tools',
+        description: 'Breastfeeding, bottle, and solids gear that supports hydration and nutrition milestones.',
+        bestPractices: 'Highlight paced-feeding tips, confirm nipple flow or utensil readiness per pediatric guidance, and surface recall notices for food-contact materials.',
+      },
+      {
+        id: 'mobility-safety',
+        label: 'Mobility & Safety',
+        description: 'Transportation, baby-wearing, and proofing essentials aligned to motor development windows.',
+        bestPractices: 'Reinforce car seat installation checks, encourage CPST consults, and add alerts for baby-proofing before crawling or cruising phases.',
+      },
+      {
+        id: 'play-development',
+        label: 'Play & Development',
+        description: 'Play gyms, toys, and sensory tools that match cognitive and motor development stages.',
+        bestPractices: 'Tag Montessori-style rotation tips, reference tummy-time quotas, and match textures to fine-motor skill progression.',
+      },
+      {
+        id: 'care-organization',
+        label: 'Care Organization',
+        description: 'Diapering stations, storage, and daily care systems keeping caregivers organized.',
+        bestPractices: 'Prompt for stock rotation (wipes, diapers), cite eco-disposal options, and encourage ergonomics to reduce caregiver strain.',
+      },
+      {
+        id: 'wellness-monitoring',
+        label: 'Wellness Monitoring',
+        description: 'Monitoring tech, health kits, and air-quality tools supporting proactive wellness.',
+        bestPractices: 'Frame monitors as caregiver aids (not medical devices), include calibration reminders, and link to pediatric triage guidelines.',
+      },
+      {
+        id: 'travel-ready',
+        label: 'Travel & On-the-Go',
+        description: 'Strollers, carriers, and grab-and-go kits that simplify outings and travel transitions.',
+        bestPractices: 'Encourage pre-trip safety checks, highlight travel-system compatibility, and remind caregivers to monitor temperature during outings.',
+      },
+    ];
+
+    for (const category of standardAiCategories) {
+      await sql`
+        INSERT INTO ai_categories (id, label, description, best_practices)
+        VALUES (${category.id}, ${category.label}, ${category.description}, ${category.bestPractices})
+        ON CONFLICT (id)
+        DO UPDATE SET
+          label = EXCLUDED.label,
+          description = EXCLUDED.description,
+          best_practices = EXCLUDED.best_practices,
+          updated_at = NOW()
+      `;
+    }
+    console.log('✅ Seeded ai_categories');
+
+    console.log('🔗 Creating product_ai_categories table...');
+    await sql`
+      CREATE TABLE IF NOT EXISTS product_ai_categories (
+        product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+        ai_category_id TEXT REFERENCES ai_categories(id) ON DELETE CASCADE,
+        PRIMARY KEY (product_id, ai_category_id)
+      )
+    `;
+    console.log('✅ product_ai_categories table ready');
+
+    console.log('📝 Creating product_reviews table...');
+    await sql`
+      CREATE TABLE IF NOT EXISTS product_reviews (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+        source TEXT NOT NULL,
+        url TEXT,
+        headline TEXT,
+        summary TEXT,
+        rating DECIMAL(3,2),
+        author TEXT,
+        published_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON product_reviews(product_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_product_reviews_source ON product_reviews(source);`;
+    console.log('✅ product_reviews table ready');
 
     // 4. User product recommendations
     console.log('💡 Creating user_product_recommendations table...');
@@ -144,4 +259,4 @@ async function runMigration() {
   }
 }
 
-runMigration();
+runMigration().catch(console.error);

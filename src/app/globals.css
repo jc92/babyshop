@@ -1,80 +1,152 @@
 @import "tailwindcss";
 
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #1f2937;
-  --dreambaby-primary: #2563eb;
-  --dreambaby-secondary: #7c3aed;
-  --dreambaby-accent: #059669;
-  --dreambaby-warm: #f8fafc;
-  --dreambaby-soft: #f1f5f9;
-  --dreambaby-border: #e2e8f0;
-  --dreambaby-text: #475569;
-  --dreambaby-muted: #94a3b8;
+  --background: #f6f5f2;
+  --foreground: #2f3538;
+
+  --baby-primary-50: #f1f6f7;
+  --baby-primary-100: #d7e4ea;
+  --baby-primary-200: #bdd1d9;
+  --baby-primary-300: #a3bdc6;
+  --baby-primary-400: #89a7b1;
+  --baby-primary-500: #6f9099;
+  --baby-primary-600: #587983;
+
+  --baby-secondary-50: #f4f7f3;
+  --baby-secondary-100: #dfe9de;
+  --baby-secondary-200: #c6d9c7;
+  --baby-secondary-300: #acc8b0;
+  --baby-secondary-400: #93b79b;
+  --baby-secondary-500: #7aa485;
+
+  --baby-accent-50: #fdf3e6;
+  --baby-accent-200: #f2ddbd;
+  --baby-accent-400: #e6c89b;
+  --baby-accent-500: #d9b47f;
+
+  --baby-neutral-50: #f8f7f4;
+  --baby-neutral-100: #eceae4;
+  --baby-neutral-200: #dedcd4;
+  --baby-neutral-300: #cecac0;
+  --baby-neutral-400: #bcb6ab;
+  --baby-neutral-500: #9b9488;
+
+  --dreambaby-primary: var(--baby-primary-500);
+  --dreambaby-secondary: var(--baby-secondary-400);
+  --dreambaby-accent: var(--baby-accent-500);
+  --dreambaby-warm: var(--baby-neutral-50);
+  --dreambaby-soft: var(--baby-neutral-100);
+  --dreambaby-border: var(--baby-neutral-300);
+  --dreambaby-text: #3c4346;
+  --dreambaby-muted: #6d7477;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 body {
-  background: #ffffff;
+  background: var(--baby-neutral-50);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui;
+  font-family: var(--font-sans);
   min-height: 100vh;
+}
+
+@keyframes advisor-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes advisor-callout {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.advisor-card-animate {
+  animation: advisor-pop 220ms ease-out;
+  transform-origin: bottom right;
+}
+
+.advisor-callout {
+  animation: advisor-callout 3.2s ease-in-out infinite;
 }
 
 /* Dreambaby-inspired theme components */
 .dreambaby-gradient {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e0f2fe 100%);
+  background: linear-gradient(135deg, var(--baby-neutral-50) 0%, var(--baby-primary-50) 45%, var(--baby-secondary-50) 100%);
 }
 
 .dreambaby-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--dreambaby-border);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 22px 45px rgba(111, 144, 153, 0.12);
 }
 
 .dreambaby-button {
-  background: var(--dreambaby-primary);
-  color: white;
+  background: linear-gradient(135deg, var(--baby-primary-400) 0%, var(--baby-primary-500) 40%, var(--baby-primary-600) 100%);
+  color: #f8fbfc;
   border: none;
   border-radius: 8px;
   padding: 12px 24px;
   font-weight: 600;
   font-size: 14px;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 18px 36px rgba(111, 144, 153, 0.18);
 }
 
 .dreambaby-button:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 24px 44px rgba(111, 144, 153, 0.23);
 }
 
 .dreambaby-button-secondary {
-  background: #ffffff;
-  color: var(--dreambaby-primary);
-  border: 1px solid var(--dreambaby-primary);
-  border-radius: 8px;
-  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--baby-primary-500);
+  border: 1px solid var(--baby-primary-200);
+  border-radius: 999px;
+  padding: 10px 22px;
   font-weight: 600;
   font-size: 14px;
   transition: all 0.2s ease;
 }
 
 .dreambaby-button-secondary:hover {
-  background: var(--dreambaby-primary);
-  color: white;
+  background: var(--baby-primary-100);
+  color: var(--baby-primary-600);
 }
 
 .dreambaby-soft-shadow {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 26px 50px rgba(122, 164, 133, 0.16);
 }
 
 .dreambaby-text {
@@ -83,4 +155,53 @@ body {
 
 .dreambaby-muted {
   color: var(--dreambaby-muted);
+}
+
+.dreambaby-hero {
+  background: linear-gradient(180deg, var(--baby-neutral-50) 0%, #ffffff 55%, var(--baby-neutral-100) 100%);
+}
+
+.dreambaby-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: var(--baby-secondary-100);
+  color: var(--baby-secondary-400);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.theme-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.35rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--baby-neutral-100);
+  color: var(--dreambaby-text);
+}
+
+.theme-pill--primary {
+  background: var(--baby-primary-100);
+  color: var(--baby-primary-600);
+}
+
+.theme-pill--secondary {
+  background: var(--baby-secondary-100);
+  color: var(--baby-secondary-400);
+}
+
+.theme-chip {
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  background: var(--baby-neutral-100);
+  color: var(--baby-neutral-500);
 }

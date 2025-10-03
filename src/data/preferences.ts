@@ -7,6 +7,7 @@ export interface PreferenceProfile {
   colorPalette: "neutral" | "pastel" | "bold" | "warm" | "cool";
   materialFocus: "organic" | "performance" | "recycled" | "classic";
   ecoPriority: boolean;
+  location: string;
 }
 
 export const defaultProfile: PreferenceProfile = {
@@ -16,5 +17,5 @@ export const defaultProfile: PreferenceProfile = {
   colorPalette: "neutral",
   materialFocus: "organic",
   ecoPriority: true,
+  location: "",
 };
-

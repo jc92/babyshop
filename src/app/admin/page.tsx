@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { clerkEnabled, useSafeUser } from '@/lib/clerkClient';
 
 interface DatabaseStats {
   total_users: number;
@@ -35,8 +35,8 @@ interface DatabaseInfo {
   current_user: string;
 }
 
-export default function AdminPage() {
-  const { user, isLoaded } = useUser();
+function AdminConsole() {
+  const { user, isLoaded } = useSafeUser();
   const [databaseInfo, setDatabaseInfo] = useState<DatabaseInfo | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,4 +210,19 @@ export default function AdminPage() {
       </div>
     </div>
   );
+}
+
+export default function AdminPage() {
+  if (!clerkEnabled) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+        <h1 className="text-2xl font-semibold text-[var(--dreambaby-text)]">Admin console unavailable</h1>
+        <p className="mt-4 text-sm text-[var(--dreambaby-muted)]">
+          Clerk credentials are not configured. Set `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` to enable the admin dashboard.
+        </p>
+      </div>
+    );
+  }
+
+  return <AdminConsole />;
 }

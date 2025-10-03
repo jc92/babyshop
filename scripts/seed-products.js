@@ -1,5 +1,7 @@
-const { sql } = require('@vercel/postgres');
-require('dotenv').config({ path: '.env.local' });
+import { sql } from '@vercel/postgres';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
 
 const sampleProducts = [
   {
@@ -156,4 +158,4 @@ async function seedProducts() {
   }
 }
 
-seedProducts();
+seedProducts().catch(console.error);

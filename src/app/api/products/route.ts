@@ -1,30 +1,8 @@
 import { NextResponse } from "next/server";
-import { sql } from "@vercel/postgres";
 import { auth } from '@clerk/nextjs/server';
-import { z } from "zod";
-
-const productSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  category: z.string().min(1),
-  subcategory: z.string().optional(),
-  brand: z.string().optional(),
-  imageUrl: z.string().url().optional(),
-  priceCents: z.number().int().min(0).optional(),
-  currency: z.string().default('USD'),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  ageRangeMonthsMin: z.number().int().min(0).optional(),
-  ageRangeMonthsMax: z.number().int().min(0).optional(),
-  milestoneIds: z.array(z.string()).optional().nullable(),
-  tags: z.array(z.string()).optional().nullable(),
-  ecoFriendly: z.boolean().default(false),
-  premium: z.boolean().default(false),
-  rating: z.number().min(0).max(5).optional(),
-  reviewCount: z.number().int().min(0).default(0),
-  affiliateUrl: z.string().url().optional(),
-  inStock: z.boolean().default(true),
-});
+import { productSchema } from "@/schemas/product";
+import { ProductDomainService, ProductNotFoundError } from '@/lib/products/domainService';
+import type { ProductQueryOptions } from '@/lib/products/types';
 
 // POST /api/products - Create a new product
 export async function POST(request: Request) {
@@ -37,58 +15,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = productSchema.parse(body);
+    const result = await ProductDomainService.addProduct(parsed);
 
-    const result = await sql`
-      INSERT INTO products (
-        name,
-        description,
-        category,
-        subcategory,
-        brand,
-        image_url,
-        price_cents,
-        currency,
-        start_date,
-        end_date,
-        age_range_months_min,
-        age_range_months_max,
-        milestone_ids,
-        tags,
-        eco_friendly,
-        premium,
-        rating,
-        review_count,
-        affiliate_url,
-        in_stock
-      ) VALUES (
-        ${parsed.name},
-        ${parsed.description || null},
-        ${parsed.category},
-        ${parsed.subcategory || null},
-        ${parsed.brand || null},
-        ${parsed.imageUrl || null},
-        ${parsed.priceCents || null},
-        ${parsed.currency},
-        ${parsed.startDate || null},
-        ${parsed.endDate || null},
-        ${parsed.ageRangeMonthsMin || null},
-        ${parsed.ageRangeMonthsMax || null},
-        ${JSON.stringify(parsed.milestoneIds || [])},
-        ${JSON.stringify(parsed.tags || [])},
-        ${parsed.ecoFriendly},
-        ${parsed.premium},
-        ${parsed.rating || null},
-        ${parsed.reviewCount},
-        ${parsed.affiliateUrl || null},
-        ${parsed.inStock}
-      )
-      RETURNING *
-    `;
-
-    return NextResponse.json({ 
-      product: result.rows[0],
-      message: "Product created successfully"
-    });
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Product creation error:', error);
@@ -99,7 +28,7 @@ export async function POST(request: Request) {
   }
 }
 
-// GET /api/products - Get products with filtering and pagination
+// GET /api/products - Get products with advanced filtering and pagination
 export async function GET(request: Request) {
   const { userId } = await auth();
   
@@ -108,107 +37,79 @@ export async function GET(request: Request) {
   }
 
   try {
+    const queryOptions: ProductQueryOptions = {};
+    const filters: ProductQueryOptions['filters'] = {};
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+
+    const getBool = (key: string) => {
+      const value = searchParams.get(key);
+      if (value === null) return undefined;
+      return value === 'true';
+    };
+
+    const getNumber = (key: string) => {
+      const value = searchParams.get(key);
+      if (!value) return undefined;
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    };
+
+    const getArray = (key: string) => {
+      const value = searchParams.get(key);
+      return value ? value.split(',').filter(Boolean) : undefined;
+    };
+
+    const page = getNumber('page');
+    const limit = getNumber('limit');
+
+    if (page) queryOptions.page = Math.max(1, page);
+    if (limit) queryOptions.limit = Math.min(100, Math.max(1, limit));
+
+    const sortBy = searchParams.get('sortBy');
+    const sortOrder = searchParams.get('sortOrder');
+
+    if (sortBy) queryOptions.sortBy = sortBy as ProductQueryOptions['sortBy'];
+    if (sortOrder) queryOptions.sortOrder = sortOrder as ProductQueryOptions['sortOrder'];
+
+    queryOptions.includeReviews = getBool('includeReviews');
+    queryOptions.includeAiCategories = getBool('includeAiCategories');
+
     const category = searchParams.get('category');
-    const ageMonths = parseInt(searchParams.get('ageMonths') || '0');
-    const budgetTier = searchParams.get('budgetTier');
-    const ecoFriendly = searchParams.get('ecoFriendly') === 'true';
-    const search = searchParams.get('search');
+    const categories = getArray('categories');
 
-    const offset = (page - 1) * limit;
-
-    // Build dynamic query
-    const whereConditions = ['1=1'];
-    const queryParams: unknown[] = [];
-    let paramIndex = 1;
-
-    if (category) {
-      whereConditions.push(`category = $${paramIndex}`);
-      queryParams.push(category);
-      paramIndex++;
+    if (categories) {
+      filters.category = categories;
+    } else if (category) {
+      filters.category = category;
     }
 
-    if (ageMonths > 0) {
-      whereConditions.push(`(age_range_months_min IS NULL OR age_range_months_min <= $${paramIndex})`);
-      whereConditions.push(`(age_range_months_max IS NULL OR age_range_months_max >= $${paramIndex})`);
-      queryParams.push(ageMonths);
-      paramIndex++;
+    const milestoneId = searchParams.get('milestoneId');
+    const milestoneIds = getArray('milestoneIds');
+
+    if (milestoneIds) {
+      filters.milestoneIds = milestoneIds;
+    } else if (milestoneId) {
+      filters.milestoneIds = milestoneId;
     }
 
-    if (budgetTier) {
-      if (budgetTier === 'budget' || budgetTier === 'standard') {
-        whereConditions.push(`premium = false`);
-      } else if (budgetTier === 'premium' || budgetTier === 'luxury') {
-        whereConditions.push(`premium = true`);
-      }
+    filters.ageMonths = getNumber('ageMonths');
+    filters.minPrice = getNumber('minPrice');
+    filters.maxPrice = getNumber('maxPrice');
+    filters.minRating = getNumber('minRating');
+    filters.budgetTier = searchParams.get('budgetTier') || undefined;
+    filters.search = searchParams.get('search') || undefined;
+    filters.ecoFriendly = getBool('ecoFriendly');
+    filters.premium = getBool('premium');
+
+    const inStock = getBool('inStock');
+    if (typeof inStock === 'boolean') {
+      filters.inStock = inStock;
     }
 
-    if (ecoFriendly) {
-      whereConditions.push(`eco_friendly = true`);
-    }
+    queryOptions.filters = filters;
 
-    if (search) {
-      whereConditions.push(`(name ILIKE $${paramIndex} OR description ILIKE $${paramIndex} OR brand ILIKE $${paramIndex})`);
-      queryParams.push(`%${search}%`);
-      paramIndex++;
-    }
-
-    whereConditions.push(`in_stock = true`);
-
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM products 
-      WHERE ${whereConditions.join(' AND ')}
-    `;
-    const countResult = await sql.query(countQuery, queryParams);
-
-    // Get products
-    const productsQuery = `
-      SELECT 
-        id,
-        name,
-        description,
-        category,
-        subcategory,
-        brand,
-        image_url,
-        price_cents,
-        currency,
-        start_date,
-        end_date,
-        age_range_months_min,
-        age_range_months_max,
-        milestone_ids,
-        tags,
-        eco_friendly,
-        premium,
-        rating,
-        review_count,
-        affiliate_url,
-        in_stock,
-        created_at,
-        updated_at
-      FROM products 
-      WHERE ${whereConditions.join(' AND ')}
-      ORDER BY created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-    
-    queryParams.push(limit, offset);
-    const productsResult = await sql.query(productsQuery, queryParams);
-
-    return NextResponse.json({
-      products: productsResult.rows,
-      pagination: {
-        page,
-        limit,
-        total: parseInt(countResult.rows[0].total),
-        totalPages: Math.ceil(parseInt(countResult.rows[0].total) / limit)
-      }
-    });
+    const result = await ProductDomainService.query(queryOptions);
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Products fetch error:', error);
@@ -216,5 +117,40 @@ export async function GET(request: Request) {
       error: "Failed to fetch products",
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing product id" }, { status: 400 });
+    }
+
+    try {
+      const result = await ProductDomainService.deleteProduct(id);
+      return NextResponse.json(result);
+    } catch (error) {
+      if (error instanceof ProductNotFoundError) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Product deletion error:', error);
+    return NextResponse.json(
+      {
+        error: "Failed to delete product",
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 },
+    );
   }
 }
