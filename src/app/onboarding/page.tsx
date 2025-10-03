@@ -10,6 +10,7 @@ import {
   saveOnboardingDraft,
   type OnboardingDraft,
 } from "@/lib/profile/onboardingDraft";
+import { defaultProfile } from "@/data/preferences";
 
 const householdOptions = [
   "Apartment",
@@ -28,10 +29,55 @@ const careNetworkOptions = [
   "Other",
 ];
 
+const budgetOptions = [
+  {
+    value: "essentials",
+    label: "Essentials",
+    description: "Keep it lean with smart swaps under $120/mo.",
+  },
+  {
+    value: "balanced",
+    label: "Balanced",
+    description: "Blend core gear with a few premium comforts.",
+  },
+  {
+    value: "premium",
+    label: "Premium",
+    description: "Curated upgrades and extras without compromise.",
+  },
+] as const;
+
+const genderOptions = [
+  { value: "girl", label: "Girl" },
+  { value: "boy", label: "Boy" },
+  { value: "surprise", label: "Surprise" },
+] as const;
+
+const paletteOptions = [
+  { value: "neutral", label: "Neutral" },
+  { value: "pastel", label: "Pastel" },
+  { value: "bold", label: "Bold" },
+  { value: "warm", label: "Warm" },
+  { value: "cool", label: "Cool" },
+] as const;
+
+const materialOptions = [
+  { value: "organic", label: "Organic" },
+  { value: "performance", label: "Performance" },
+  { value: "recycled", label: "Recycled" },
+  { value: "classic", label: "Classic" },
+] as const;
+
 type FormState = {
   babyName: string;
   babyNickname: string;
   dueDate: string;
+  babyGender: (typeof genderOptions)[number]["value"];
+  budget: (typeof budgetOptions)[number]["value"];
+  colorPalette: (typeof paletteOptions)[number]["value"];
+  materialFocus: (typeof materialOptions)[number]["value"];
+  ecoPriority: boolean;
+  location: string;
   parentOneName: string;
   parentTwoName: string;
   hospital: string;
@@ -45,6 +91,12 @@ const initialState: FormState = {
   babyName: "",
   babyNickname: "",
   dueDate: "",
+  babyGender: defaultProfile.babyGender,
+  budget: defaultProfile.budget,
+  colorPalette: defaultProfile.colorPalette,
+  materialFocus: defaultProfile.materialFocus,
+  ecoPriority: defaultProfile.ecoPriority,
+  location: "",
   parentOneName: "",
   parentTwoName: "",
   hospital: "",
@@ -54,7 +106,7 @@ const initialState: FormState = {
   medicalNotes: "",
 };
 
-type StepId = "basics" | "care-team" | "home";
+type StepId = "basics" | "preferences" | "care-team" | "home";
 
 type Step = {
   id: StepId;
@@ -67,6 +119,11 @@ const steps: Step[] = [
     id: "basics",
     title: "Baby basics",
     description: "Share how you refer to baby and when they are arriving.",
+  },
+  {
+    id: "preferences",
+    title: "Plan preferences",
+    description: "Tell us your budget, vibe, and eco priorities.",
   },
   {
     id: "care-team",
@@ -84,6 +141,12 @@ function buildDraft(state: FormState): OnboardingDraft {
   return {
     plan: {
       dueDate: state.dueDate,
+      babyGender: state.babyGender,
+      budget: state.budget,
+      colorPalette: state.colorPalette,
+      materialFocus: state.materialFocus,
+      ecoPriority: state.ecoPriority,
+      location: state.location || undefined,
     },
     baby: {
       name: state.babyName || undefined,
@@ -100,8 +163,12 @@ function buildDraft(state: FormState): OnboardingDraft {
   };
 }
 
-function hasRequiredFields(state: FormState) {
+function hasRequiredBasics(state: FormState) {
   return Boolean(state.dueDate && (state.babyName || state.babyNickname));
+}
+
+function hasRequiredPreferences(state: FormState) {
+  return Boolean(state.budget && state.babyGender && state.colorPalette && state.materialFocus);
 }
 
 export default function OnboardingPage() {
@@ -124,6 +191,13 @@ export default function OnboardingPage() {
         babyName: draft.baby.name ?? "",
         babyNickname: draft.baby.nickname ?? "",
         dueDate: draft.plan.dueDate ?? "",
+        babyGender: (draft.plan.babyGender as FormState["babyGender"]) ?? current.babyGender,
+        budget: (draft.plan.budget as FormState["budget"]) ?? current.budget,
+        colorPalette: (draft.plan.colorPalette as FormState["colorPalette"]) ?? current.colorPalette,
+        materialFocus: (draft.plan.materialFocus as FormState["materialFocus"]) ?? current.materialFocus,
+        ecoPriority:
+          typeof draft.plan.ecoPriority === "boolean" ? draft.plan.ecoPriority : current.ecoPriority,
+        location: draft.plan.location ?? "",
         parentOneName: draft.baby.parentOneName ?? "",
         parentTwoName: draft.baby.parentTwoName ?? "",
         hospital: draft.baby.hospital ?? "",
@@ -153,12 +227,17 @@ export default function OnboardingPage() {
       }));
     };
 
-  const isComplete = useMemo(() => hasRequiredFields(form), [form]);
+  const isComplete = useMemo(
+    () => hasRequiredBasics(form) && hasRequiredPreferences(form),
+    [form],
+  );
 
   const canContinue = useMemo(() => {
     switch (currentStep.id) {
       case "basics":
-        return hasRequiredFields(form);
+        return hasRequiredBasics(form);
+      case "preferences":
+        return hasRequiredPreferences(form);
       default:
         return true;
     }
@@ -178,6 +257,18 @@ export default function OnboardingPage() {
 
     return pieces.join(" · ");
   }, [form.babyName, form.babyNickname, form.dueDate]);
+
+  const preferenceSummary = useMemo(() => {
+    const entries = [
+      budgetOptions.find((option) => option.value === form.budget)?.label ?? null,
+      genderOptions.find((option) => option.value === form.babyGender)?.label ?? null,
+      paletteOptions.find((option) => option.value === form.colorPalette)?.label ?? null,
+      materialOptions.find((option) => option.value === form.materialFocus)?.label ?? null,
+      form.ecoPriority ? "Eco priority on" : "Eco priority off",
+    ].filter(Boolean) as string[];
+
+    return entries.join(" · ");
+  }, [form.babyGender, form.budget, form.colorPalette, form.materialFocus, form.ecoPriority]);
 
   const handleSignedInSubmit = async () => {
     if (!isComplete || isSubmitting) {
@@ -277,6 +368,147 @@ export default function OnboardingPage() {
                   className="rounded-lg border border-[var(--baby-neutral-300)] bg-white px-3 py-2 text-[var(--dreambaby-text)] shadow-sm focus:border-[var(--baby-primary-400)] focus:outline-none"
                 />
               </label>
+            </div>
+          </div>
+        );
+      case "preferences":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-[var(--dreambaby-text)]">Plan preferences</h2>
+              <p className="mt-2 text-sm text-[var(--dreambaby-muted)]">
+                These picks guide the budget, vibe, and sustainability focus for every milestone recommendation.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--baby-primary-600)]">
+                Budget tier
+              </p>
+              <div className="grid gap-3 md:grid-cols-3">
+                {budgetOptions.map((option) => {
+                  const selected = form.budget === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setForm((current) => ({ ...current, budget: option.value }))}
+                      className={`rounded-2xl border px-4 py-3 text-left transition ${
+                        selected
+                          ? "border-[var(--baby-primary-500)] bg-[var(--baby-primary-50)] text-[var(--baby-primary-700)] shadow-sm"
+                          : "border-[var(--baby-neutral-200)] bg-white text-[var(--dreambaby-text)] hover:border-[var(--baby-primary-300)]"
+                      }`}
+                    >
+                      <span className="text-sm font-semibold">{option.label}</span>
+                      <span className="mt-1 block text-xs text-[var(--dreambaby-muted)]">{option.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <label className="flex flex-col gap-2 text-sm font-medium text-[var(--dreambaby-text)]">
+                Baby gender vibe
+                <div className="flex flex-wrap gap-2">
+                  {genderOptions.map((option) => {
+                    const selected = form.babyGender === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setForm((current) => ({ ...current, babyGender: option.value }))}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          selected
+                            ? "bg-[var(--baby-primary-500)] text-white"
+                            : "bg-[var(--baby-neutral-200)] text-[var(--dreambaby-text)] hover:bg-[var(--baby-neutral-300)]"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm font-medium text-[var(--dreambaby-text)]">
+                Color palette
+                <div className="flex flex-wrap gap-2">
+                  {paletteOptions.map((option) => {
+                    const selected = form.colorPalette === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setForm((current) => ({ ...current, colorPalette: option.value }))}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          selected
+                            ? "bg-[var(--baby-secondary-500)] text-white"
+                            : "bg-[var(--baby-neutral-200)] text-[var(--dreambaby-text)] hover:bg-[var(--baby-neutral-300)]"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm font-medium text-[var(--dreambaby-text)]">
+                Material focus
+                <div className="flex flex-wrap gap-2">
+                  {materialOptions.map((option) => {
+                    const selected = form.materialFocus === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setForm((current) => ({ ...current, materialFocus: option.value }))}
+                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          selected
+                            ? "bg-[var(--baby-secondary-500)] text-white"
+                            : "bg-[var(--baby-neutral-200)] text-[var(--dreambaby-text)] hover:bg-[var(--baby-neutral-300)]"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm font-medium text-[var(--dreambaby-text)]">
+                Zip or city (optional)
+                <input
+                  type="text"
+                  value={form.location}
+                  onChange={handleChange("location")}
+                  placeholder="e.g., Brooklyn, NY"
+                  className="rounded-lg border border-[var(--baby-neutral-300)] bg-white px-3 py-2 text-[var(--dreambaby-text)] shadow-sm focus:border-[var(--baby-primary-400)] focus:outline-none"
+                />
+                <span className="text-xs font-normal text-[var(--dreambaby-muted)]">
+                  Helps tailor availability and local services.
+                </span>
+              </label>
+
+              <div className="flex flex-col gap-2 text-sm font-medium text-[var(--dreambaby-text)]">
+                Sustainability focus
+                <button
+                  type="button"
+                  onClick={() => setForm((current) => ({ ...current, ecoPriority: !current.ecoPriority }))}
+                  className={`inline-flex items-center justify-between rounded-full border px-4 py-2 text-sm transition ${
+                    form.ecoPriority
+                      ? "border-[var(--baby-primary-500)] bg-[var(--baby-primary-50)] text-[var(--baby-primary-700)]"
+                      : "border-[var(--baby-neutral-300)] bg-white text-[var(--dreambaby-text)] hover:border-[var(--baby-primary-300)]"
+                  }`}
+                >
+                  <span>{form.ecoPriority ? "Prioritize eco-first picks" : "Eco priority off"}</span>
+                  <span aria-hidden>{form.ecoPriority ? "✓" : "✕"}</span>
+                </button>
+                <span className="text-xs font-normal text-[var(--dreambaby-muted)]">
+                  Toggle to emphasize organic, low-tox, and recycled picks throughout your plan.
+                </span>
+              </div>
             </div>
           </div>
         );
@@ -408,7 +640,7 @@ export default function OnboardingPage() {
 
         <section className="mt-8 flex-1 rounded-3xl border border-[var(--baby-neutral-200)] bg-white shadow-sm">
           <div className="border-b border-[var(--baby-neutral-200)] bg-[var(--baby-neutral-50)]/60 px-6 py-4">
-            <ol className="grid gap-4 sm:grid-cols-3">
+            <ol className="grid gap-4 sm:grid-cols-4">
               {steps.map((step, index) => {
                 const status =
                   index === currentStepIndex ? "current" : index < currentStepIndex ? "complete" : "upcoming";
@@ -441,9 +673,10 @@ export default function OnboardingPage() {
             {showSummary && (
               <div className="rounded-2xl border border-[var(--baby-neutral-200)] bg-[var(--baby-neutral-50)] px-5 py-4 text-sm">
                 <p className="font-semibold text-[var(--dreambaby-text)]">Preview</p>
-                <p className="mt-1 text-[var(--dreambaby-muted)]">
-                  {babySummary}
-                </p>
+                <div className="mt-1 space-y-1 text-[var(--dreambaby-muted)]">
+                  <p>{babySummary}</p>
+                  <p>{preferenceSummary}</p>
+                </div>
               </div>
             )}
 
