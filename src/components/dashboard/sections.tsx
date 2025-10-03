@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { SignInButton } from "@clerk/nextjs";
 import { type Dispatch, type SetStateAction, useState } from "react";
@@ -723,9 +724,17 @@ export function SignInPrompt() {
         <span className="theme-pill theme-pill--primary">BabyBloom</span>
         <h1 className="mt-4 text-3xl font-semibold text-[var(--dreambaby-text)]">Monthly essentials, made simple</h1>
         <p className="mt-2 text-sm text-[var(--dreambaby-muted)]">
-          Sign in to access your dashboard, recommendations, and timeline guidance.
+          Sign in to access your dashboard, recommendations, and timeline guidance. No account yet? Start onboarding to answer a few quick questions first.
         </p>
-        <div className="mt-8">
+        <div className="mt-8 space-y-3">
+          {!isSignedIn && (
+            <Link
+              href="/onboarding"
+              className="inline-flex w-full items-center justify-center rounded-full border border-[var(--baby-primary-200)] bg-[var(--baby-primary-50)] px-6 py-3 text-sm font-semibold text-[var(--baby-primary-700)] transition hover:border-[var(--baby-primary-300)] hover:bg-[var(--baby-primary-100)]"
+            >
+              Start onboarding without signing in
+            </Link>
+          )}
           {!clerkEnabled ? (
             <button
               type="button"
@@ -751,7 +760,11 @@ export function SignInPrompt() {
               You&apos;re already signed in
             </button>
           ) : (
-            <SignInButton mode="modal">
+            <SignInButton
+              mode="modal"
+              afterSignInUrl="/overview"
+              afterSignUpUrl="/onboarding"
+            >
               <button className="w-full rounded-full bg-[var(--baby-primary-500)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--baby-primary-600)]">
                 Sign in to continue
               </button>

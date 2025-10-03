@@ -55,9 +55,16 @@ export function formatDateForCalendar(date: Date): string {
 /**
  * Normalize arbitrary date strings to an ISO (YYYY-MM-DD) value suitable for HTML date inputs.
  */
-export function toIsoDateString(value?: string | null): string | null {
-  if (typeof value !== 'string') {
+export function toIsoDateString(value?: string | Date | null): string | null {
+  if (!value) {
     return null;
+  }
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      return null;
+    }
+    return value.toISOString().split('T')[0];
   }
 
   const trimmed = value.trim();
@@ -68,6 +75,27 @@ export function toIsoDateString(value?: string | null): string | null {
   const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {
     return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  const dmyMatch = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if (dmyMatch) {
+    const day = Number.parseInt(dmyMatch[1], 10);
+    const month = Number.parseInt(dmyMatch[2], 10);
+    const year = Number.parseInt(dmyMatch[3], 10);
+
+    if (
+      Number.isFinite(day) &&
+      Number.isFinite(month) &&
+      Number.isFinite(year) &&
+      day >= 1 &&
+      day <= 31 &&
+      month >= 1 &&
+      month <= 12
+    ) {
+      return `${year.toString().padStart(4, '0')}-${month
+        .toString()
+        .padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    }
   }
 
   const parsed = Date.parse(trimmed);
@@ -81,17 +109,21 @@ export function toIsoDateString(value?: string | null): string | null {
 /**
  * Format a stored ISO date string for display without introducing timezone drift.
  */
-export function formatDateForDisplay(value?: string | null, locale?: string): string | null {
+export function formatDateForDisplay(value?: string | Date | null, locale?: string): string | null {
   const iso = toIsoDateString(value);
   if (!iso) {
     return null;
   }
 
-  const [year, month, day] = iso.split('-').map((part) => Number.parseInt(part, 10));
-  if ([year, month, day].some((part) => Number.isNaN(part))) {
+  const [year, month, day] = iso.split('-');
+  if (!year || !month || !day) {
     return null;
   }
 
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString(locale ?? undefined);
+  const formatted = new Date(Number(year), Number(month) - 1, Number(day));
+  if (Number.isNaN(formatted.getTime())) {
+    return null;
+  }
+
+  return formatted.toLocaleDateString(locale ?? undefined);
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AppProviders from "./providers";
-import AiAdvisorChat from "@/components/AiAdvisorChat";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Nestlings Monthly | Baby Essentials Planner",
@@ -20,12 +20,8 @@ export default function RootLayout({
         className="antialiased"
         suppressHydrationWarning={true}
       >
-        <AppProviders>
-          <>
-            {children}
-            <AiAdvisorChat />
-          </>
-        </AppProviders>
+        <AppProviders>{children}</AppProviders>
+        <Analytics />
       </body>
     </html>
   );

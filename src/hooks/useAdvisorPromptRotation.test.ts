@@ -69,6 +69,9 @@ describe("useAdvisorPromptRotation", () => {
 
     act(() => {
       rerender({ isPaused: false });
+    });
+
+    act(() => {
       vi.advanceTimersByTime(400);
     });
     expect(result.current.activePrompt).toBe("Prompt B");
@@ -87,5 +90,60 @@ describe("useAdvisorPromptRotation", () => {
       vi.advanceTimersByTime(250);
     });
     expect(result.current.activePrompt).toBe("");
+  });
+
+  it("ignores prompts that are empty or whitespace-only", () => {
+    const prompts = ["", "   ", "Prompt 1", "Prompt 2"] as const;
+    const { result } = renderHook(() =>
+      useAdvisorPromptRotation(prompts, { intervalMs: 300, isPaused: false }),
+    );
+
+    expect(result.current.promptCount).toBe(2);
+    expect(result.current.activePrompt).toBe("Prompt 1");
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(result.current.activePrompt).toBe("Prompt 2");
+  });
+
+  it("clamps active index when prompt list shrinks", () => {
+    const initialPrompts = ["Prompt A", "Prompt B", "Prompt C"] as const;
+    const { result, rerender } = renderHook(
+      ({ prompts }: { prompts: readonly string[] }) =>
+        useAdvisorPromptRotation(prompts, { intervalMs: 200, isPaused: false }),
+      {
+        initialProps: { prompts: initialPrompts },
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    expect(result.current.activePrompt).toBe("Prompt C");
+
+    act(() => {
+      rerender({ prompts: ["Prompt A"] });
+    });
+
+    expect(result.current.activePrompt).toBe("Prompt A");
+    expect(result.current.activePromptIndex).toBe(0);
+  });
+
+  it("respects a custom interval override", () => {
+    const prompts = ["Prompt A", "Prompt B"] as const;
+    const { result } = renderHook(() =>
+      useAdvisorPromptRotation(prompts, { intervalMs: 1500, isPaused: false }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1400);
+    });
+    expect(result.current.activePrompt).toBe("Prompt A");
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(result.current.activePrompt).toBe("Prompt B");
   });
 });

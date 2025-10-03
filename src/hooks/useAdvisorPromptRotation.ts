@@ -40,7 +40,6 @@ export function useAdvisorPromptRotation(
 
   useEffect(() => {
     if (isPaused) {
-      setActivePromptIndex(0);
       return;
     }
 
@@ -62,6 +61,12 @@ export function useAdvisorPromptRotation(
       window.clearInterval(intervalId);
     };
   }, [isPaused, intervalMs, promptCount]);
+
+  useEffect(() => {
+    if (isPaused && activePromptIndex !== 0) {
+      setActivePromptIndex(0);
+    }
+  }, [isPaused, activePromptIndex]);
 
   const activePrompt = normalizedPrompts[activePromptIndex] ?? normalizedPrompts[0] ?? "";
 

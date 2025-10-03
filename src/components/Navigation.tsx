@@ -59,25 +59,44 @@ export function Navigation() {
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
           {sectionNavItems.map((section) => {
             const active = isActive(section.href);
+            const emphasizeProfile = section.id === "profile";
+            const profileBadgeLabel = isSignedIn ? "Update" : "Start here";
+            const buttonClasses = `inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
+              active
+                ? "bg-[var(--baby-primary-100)] text-[var(--dreambaby-text)]"
+                : emphasizeProfile
+                  ? "border border-[var(--baby-primary-200)] bg-[var(--baby-primary-50)] text-[var(--baby-primary-700)] hover:border-[var(--baby-primary-300)]"
+                  : "text-[var(--dreambaby-muted)] hover:bg-[var(--baby-neutral-50)] hover:text-[var(--dreambaby-text)]"
+            }`;
             return (
               <button
                 key={section.id}
                 type="button"
                 onClick={() => handleNavigate(section.href)}
                 aria-current={active ? "page" : undefined}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  active
-                    ? "bg-[var(--baby-primary-100)] text-[var(--dreambaby-text)]"
-                    : "text-[var(--dreambaby-muted)] hover:bg-[var(--baby-neutral-50)] hover:text-[var(--dreambaby-text)]"
-                }`}
+                className={buttonClasses}
               >
-                {section.label}
+                <span>{section.label}</span>
+                {emphasizeProfile && !active && (
+                  <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--baby-primary-600)]">
+                    {profileBadgeLabel}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
 
         <div className="flex items-center gap-3">
+          {!isSignedIn && (
+            <button
+              type="button"
+              className="hidden rounded-full border border-[var(--baby-primary-200)] bg-white px-4 py-2 text-sm font-semibold text-[var(--baby-primary-600)] shadow-sm transition hover:border-[var(--baby-primary-300)] hover:bg-[var(--baby-primary-50)] md:block"
+              onClick={() => handleNavigate("/onboarding")}
+            >
+              Start onboarding
+            </button>
+          )}
           {clerkEnabled ? (
             isSignedIn ? (
               isLoaded ? (
@@ -105,7 +124,11 @@ export function Navigation() {
                 </>
               ) : null
             ) : isLoaded ? (
-              <SignInButton mode="modal">
+              <SignInButton
+                mode="modal"
+                afterSignInUrl="/overview"
+                afterSignUpUrl="/onboarding"
+              >
                 <button
                   type="button"
                   className="hidden rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)] md:block"
@@ -153,6 +176,8 @@ export function Navigation() {
           <nav className="flex flex-col gap-2 text-sm" aria-label="Mobile">
             {sectionNavItems.map((section) => {
               const active = isActive(section.href);
+              const emphasizeProfile = section.id === "profile";
+              const profileBadgeLabel = isSignedIn ? "Update" : "Start here";
               return (
                 <button
                   key={section.id}
@@ -162,15 +187,33 @@ export function Navigation() {
                   className={`flex items-center justify-between rounded-lg border px-4 py-2 font-medium transition ${
                     active
                       ? "border-[var(--baby-primary-200)] bg-[var(--baby-primary-50)] text-[var(--dreambaby-text)]"
-                      : "border-transparent text-[var(--dreambaby-muted)] hover:border-[var(--baby-neutral-300)] hover:bg-[var(--baby-neutral-50)] hover:text-[var(--dreambaby-text)]"
+                      : emphasizeProfile
+                        ? "border-[var(--baby-primary-200)] bg-[var(--baby-primary-50)] text-[var(--baby-primary-700)]"
+                        : "border-transparent text-[var(--dreambaby-muted)] hover:border-[var(--baby-neutral-300)] hover:bg-[var(--baby-neutral-50)] hover:text-[var(--dreambaby-text)]"
                   }`}
                 >
-                  {section.label}
+                  <span className="flex items-center gap-2">
+                    {section.label}
+                    {emphasizeProfile && !active && (
+                      <span className="rounded-full bg-[var(--baby-primary-100)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--baby-primary-600)]">
+                        {profileBadgeLabel}
+                      </span>
+                    )}
+                  </span>
                   <span aria-hidden="true">→</span>
                 </button>
               );
             })}
           </nav>
+          {!isSignedIn && (
+            <button
+              type="button"
+              className="mt-4 w-full rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)]"
+              onClick={() => handleNavigate("/onboarding")}
+            >
+              Start onboarding
+            </button>
+          )}
           {clerkEnabled ? (
             isSignedIn ? (
               isLoaded ? (
@@ -188,7 +231,11 @@ export function Navigation() {
               ) : null
             ) : isLoaded ? (
               <div className="mt-5">
-                <SignInButton mode="modal">
+                <SignInButton
+                  mode="modal"
+                  afterSignInUrl="/overview"
+                  afterSignUpUrl="/onboarding"
+                >
                   <button className="w-full rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)]">
                     Sign in / create account
                   </button>

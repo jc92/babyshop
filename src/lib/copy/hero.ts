@@ -4,8 +4,8 @@ export const heroCopy = {
   subtitle:
     "You answer a few questions. We map every milestone, compare the must-have gear, and keep your baby registry perfectly timed—no guesswork, no overwhelm.",
   primaryCta: {
-    label: "Start building my registry",
-    href: "/overview",
+    label: "Start onboarding",
+    href: "/onboarding",
   },
   secondaryCta: {
     label: "See how it works",

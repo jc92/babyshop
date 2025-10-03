@@ -84,6 +84,9 @@ export default function CalendarView({ milestones, activeMilestoneId, onSelectMi
   }, [activeMilestoneId, milestones, referenceDate, months]);
 
 
+  const formatMilestoneDate = (date: Date) =>
+    new Intl.DateTimeFormat("en-GB", { month: "short", day: "numeric" }).format(date);
+
   return (
     <div className="dreambaby-card rounded-3xl shadow-xl overflow-hidden">
       {/* Header with current date indicator */}
@@ -197,7 +200,7 @@ export default function CalendarView({ milestones, activeMilestoneId, onSelectMi
                     <div className="flex-1">
                       <div className="font-semibold text-sm truncate">{milestone.label}</div>
                       <div className="text-xs opacity-75 mt-0.5">
-                        {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {formatMilestoneDate(start)} - {formatMilestoneDate(end)}
                       </div>
                     </div>
                     {isActive && (
@@ -261,4 +264,3 @@ export default function CalendarView({ milestones, activeMilestoneId, onSelectMi
     </div>
   );
 }
-

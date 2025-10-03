@@ -917,7 +917,7 @@ export default function AiAdvisorChat() {
                       You&apos;re already signed in
                     </button>
                   ) : (
-                    <SignInButton mode="modal">
+                    <SignInButton mode="modal" afterSignUpUrl="/onboarding">
                       <button className="w-full rounded-md bg-[var(--baby-primary-500)] px-4 py-2 font-semibold text-white transition hover:bg-[var(--baby-primary-600)]">
                         Sign in
                       </button>
@@ -950,17 +950,25 @@ export default function AiAdvisorChat() {
               {activePrompt}
             </div>
           ) : null}
-          <button
-            type="button"
-            onClick={handleToggle}
-            className="flex items-center gap-3 rounded-full bg-gradient-to-r from-[var(--baby-primary-400)] via-[var(--baby-primary-500)] to-[var(--baby-secondary-400)] px-6 py-3 text-base font-semibold text-white shadow-xl shadow-[rgba(111,144,153,0.25)] transition hover:-translate-y-[2px] hover:from-[var(--baby-primary-500)] hover:to-[var(--baby-secondary-500)] advisor-callout"
-            aria-label={`Ask Baby Advisor${activePrompt ? ` - ${activePrompt}` : ""}`}
-          >
-            <span role="img" aria-label="Chat balloon">
-              💬
-            </span>
-            <span>Ask Baby Advisor</span>
-          </button>
+          <div className="relative">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 animate-[pulse_4s_ease-in-out_infinite] rounded-full border border-[var(--baby-primary-200)]/70" />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-20 animate-[ping_4s_ease-in-out_infinite] rounded-full bg-[var(--baby-primary-200)]/30" />
+            <button
+              type="button"
+              onClick={handleToggle}
+              className="flex items-center gap-3 rounded-full bg-gradient-to-r from-[var(--baby-primary-400)] via-[var(--baby-primary-500)] to-[var(--baby-secondary-400)] px-6 py-3 text-base font-semibold text-white shadow-xl shadow-[rgba(111,144,153,0.25)] transition hover:-translate-y-[2px] hover:from-[var(--baby-primary-500)] hover:to-[var(--baby-secondary-500)] advisor-callout"
+              aria-label={`Ask Baby Advisor${activePrompt ? ` - ${activePrompt}` : ""}`}
+            >
+              <span role="img" aria-label="Chat balloon">
+                💬
+              </span>
+              <span>Ask Baby Advisor</span>
+            </button>
+          </div>
         </div>
       )}
     </>

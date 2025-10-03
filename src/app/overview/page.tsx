@@ -1,7 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
+import { DeferredRender } from "@/components/DeferredRender";
 import {
   CalendarSection,
   LoadingState,
@@ -9,7 +11,11 @@ import {
   SignInPrompt,
 } from "@/components/dashboard/sections";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import AiAdvisorChat from "@/components/AiAdvisorChat";
+
+const AiAdvisorChat = dynamic(() => import("@/components/AiAdvisorChat"), {
+  ssr: false,
+  loading: () => null,
+});
 
 export default function OverviewPage() {
   const router = useRouter();
@@ -81,7 +87,15 @@ export default function OverviewPage() {
         />
       </main>
 
-      <AiAdvisorChat />
+      <DeferredRender
+        fallback={
+          <div className="mx-auto flex max-w-6xl items-center justify-center px-6 pb-12 text-sm text-[var(--dreambaby-muted)]">
+            Initializing AI advisor…
+          </div>
+        }
+      >
+        <AiAdvisorChat />
+      </DeferredRender>
     </div>
   );
 }

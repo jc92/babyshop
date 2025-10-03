@@ -14,7 +14,11 @@ export default function AppProviders({ children }: ProvidersProps) {
   }
 
   return (
-    <ClerkProvider publishableKey={clerkPublishableKey}>
+    <ClerkProvider
+      publishableKey={clerkPublishableKey}
+      afterSignInUrl="/overview"
+      afterSignUpUrl="/onboarding"
+    >
       <SafeUserProvider>{children}</SafeUserProvider>
     </ClerkProvider>
   );
