@@ -17,6 +17,7 @@ import { defaultMilestones, type MilestoneId } from "@/data/catalog";
 import { MilestoneService } from "@/lib/milestones/service";
 import { clerkEnabled, useSafeUser } from "@/lib/clerkClient";
 import { toIsoDateString } from "@/lib/dateCalculations";
+import { useAdvisorPromptRotation } from "@/hooks/useAdvisorPromptRotation";
 
 type AdvisorProfile = {
   dueDate?: string;
@@ -56,6 +57,13 @@ type ChatBubble = {
   error?: boolean;
   addProductSourceUrl?: string | null;
 };
+
+const advisorPrompts = [
+  "Need help building your registry? Ask for a starter list.",
+  "Curious about trimester must-haves? I can help!",
+  "Looking for eco-friendly swaps? I know vetted picks.",
+  "Getting baby's sleep space ready? Let's make a plan.",
+] as const;
 
 function mergeClassNames(...classes: Array<string | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -150,6 +158,9 @@ export default function AiAdvisorChat() {
   const [isCreatingProductUrl, setIsCreatingProductUrl] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const { activePrompt, activePromptIndex } = useAdvisorPromptRotation(advisorPrompts, {
+    isPaused: isOpen,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -928,16 +939,29 @@ export default function AiAdvisorChat() {
       </div>
 
       {!isOpen && (
-        <button
-          type="button"
-          onClick={handleToggle}
-          className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-full bg-gradient-to-r from-[var(--baby-primary-400)] via-[var(--baby-primary-500)] to-[var(--baby-secondary-400)] px-6 py-3 text-base font-semibold text-white shadow-xl shadow-[rgba(111,144,153,0.25)] transition hover:-translate-y-[2px] hover:from-[var(--baby-primary-500)] hover:to-[var(--baby-secondary-500)] advisor-callout"
-        >
-          <span role="img" aria-label="Chat balloon">
-            💬
-          </span>
-          <span>Ask Baby Advisor</span>
-        </button>
+        <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-3">
+          {activePrompt ? (
+            <div
+              key={activePromptIndex}
+              aria-live="polite"
+              role="status"
+              className="advisor-prompt-bubble relative pointer-events-none select-none rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[var(--dreambaby-text)] shadow-xl shadow-[rgba(111,144,153,0.22)]"
+            >
+              {activePrompt}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleToggle}
+            className="flex items-center gap-3 rounded-full bg-gradient-to-r from-[var(--baby-primary-400)] via-[var(--baby-primary-500)] to-[var(--baby-secondary-400)] px-6 py-3 text-base font-semibold text-white shadow-xl shadow-[rgba(111,144,153,0.25)] transition hover:-translate-y-[2px] hover:from-[var(--baby-primary-500)] hover:to-[var(--baby-secondary-500)] advisor-callout"
+            aria-label={`Ask Baby Advisor${activePrompt ? ` - ${activePrompt}` : ""}`}
+          >
+            <span role="img" aria-label="Chat balloon">
+              💬
+            </span>
+            <span>Ask Baby Advisor</span>
+          </button>
+        </div>
       )}
     </>
   );

@@ -91,6 +91,21 @@ body {
   }
 }
 
+@keyframes advisor-prompt-float {
+  0% {
+    opacity: 0.9;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 0.9;
+    transform: translateY(0);
+  }
+}
+
 .advisor-card-animate {
   animation: advisor-pop 220ms ease-out;
   transform-origin: bottom right;
@@ -98,6 +113,29 @@ body {
 
 .advisor-callout {
   animation: advisor-callout 3.2s ease-in-out infinite;
+}
+
+.advisor-prompt-bubble {
+  animation: advisor-prompt-float 7.2s ease-in-out infinite;
+  background-color: rgba(255, 255, 255, 0.98);
+  transform-origin: bottom right;
+}
+
+.advisor-prompt-bubble::after {
+  border-color: rgba(255, 255, 255, 0.98) transparent transparent transparent;
+  border-style: solid;
+  border-width: 12px 10px 0 10px;
+  bottom: -10px;
+  content: "";
+  position: absolute;
+  right: 28px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .advisor-callout,
+  .advisor-prompt-bubble {
+    animation: none !important;
+  }
 }
 
 /* Dreambaby-inspired theme components */

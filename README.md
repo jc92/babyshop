@@ -132,6 +132,7 @@ flowchart TD
    
    Navigate to [http://localhost:3000](http://localhost:3000) for the main experience and
    [http://localhost:3000/how-it-works](http://localhost:3000/how-it-works) for the guided walkthrough.
+   Re-run the migration endpoint above whenever you pull schema changes (the latest update adds baby name, location, and parent fields to `user_profiles`).
 
 ### Environment Variables
 
@@ -185,12 +186,17 @@ erDiagram
         string color_palette
         string material_focus
         boolean eco_priority
+        string baby_name
+        string baby_nickname
         string hospital
         string provider
         string household_setup
         string care_network
         text medical_notes
         date birth_date
+        string location
+        string parent_one_name
+        string parent_two_name
         datetime created_at
         datetime updated_at
     }
