@@ -721,20 +721,21 @@ export default function OnboardingPage() {
                     {isSubmitting ? "Saving…" : "Save and see my dashboard"}
                   </button>
                 ) : clerkEnabled ? (
-                  <SignUpButton
-                    mode="modal"
-                    afterSignUpUrl="/onboarding/complete"
-                    afterSignInUrl="/overview"
-                  >
-                    <button
-                      type="button"
-                      onClick={handlePrepareForSignUp}
-                      disabled={!isComplete}
-                      className="inline-flex items-center justify-center rounded-full bg-[var(--baby-primary-500)] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)] disabled:cursor-not-allowed disabled:bg-[var(--baby-neutral-300)]"
-                    >
-                      Create my account
-                    </button>
-                  </SignUpButton>
+                  <div className="inline-flex items-center gap-3 rounded-full bg-[rgba(244,247,250,0.85)] px-2 py-1">
+                    <SignUpButton mode="modal">
+                      <button
+                        type="button"
+                        onClick={handlePrepareForSignUp}
+                        disabled={!isComplete}
+                        className="inline-flex items-center justify-center rounded-full bg-[var(--baby-primary-500)] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)] disabled:cursor-not-allowed disabled:bg-[var(--baby-neutral-300)]"
+                      >
+                        Create my account
+                      </button>
+                    </SignUpButton>
+                    <span className="text-xs font-semibold text-[var(--dreambaby-muted)]">
+                      You’ll jump back to the dashboard after signing up.
+                    </span>
+                  </div>
                 ) : (
                   <button
                     type="button"
@@ -748,7 +749,7 @@ export default function OnboardingPage() {
                 {!isSignedIn && clerkEnabled && (
                   <div className="text-center text-xs text-[var(--dreambaby-muted)] sm:text-left">
                     <span>Already have an account? </span>
-                    <SignInButton mode="modal" afterSignInUrl="/overview">
+                    <SignInButton mode="modal">
                       <button
                         type="button"
                         className="font-semibold text-[var(--baby-primary-600)] underline-offset-4 hover:underline"

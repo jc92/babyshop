@@ -9,6 +9,10 @@ type DeferredRenderProps = {
    * IntersectionObserver root margin. Defaults to preloading the content when it is within 200px of the viewport.
    */
   rootMargin?: string;
+  /**
+   * When true, render immediately without waiting for intersection.
+   */
+  eager?: boolean;
 };
 
 /**
@@ -18,12 +22,18 @@ export function DeferredRender({
   children,
   fallback = null,
   rootMargin = "0px 0px 200px 0px",
+  eager = false,
 }: DeferredRenderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [shouldRender, setShouldRender] = useState(false);
+  const [shouldRender, setShouldRender] = useState(() => eager);
 
   useEffect(() => {
     if (shouldRender) {
+      return;
+    }
+
+    if (eager) {
+      setShouldRender(true);
       return;
     }
 
@@ -53,7 +63,7 @@ export function DeferredRender({
     return () => {
       observer.disconnect();
     };
-  }, [rootMargin, shouldRender]);
+  }, [rootMargin, shouldRender, eager]);
 
   return (
     <div ref={containerRef} aria-busy={!shouldRender} aria-live="polite">

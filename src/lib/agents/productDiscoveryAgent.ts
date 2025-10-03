@@ -159,7 +159,7 @@ export class ProductDiscoveryAgent {
           {
             role: 'system',
             content:
-              "You are BabyBloom's product discovery agent. Review the provided product candidates and select the best options for caregivers based on their preferences. Favor safety, age appropriateness, eco credentials, and credible review signals when forming recommendations.",
+              "You are Nestlings Planner's product discovery agent. Review the provided product candidates and select the best options for caregivers based on their preferences. Favor safety, age appropriateness, eco credentials, and credible review signals when forming recommendations.",
           },
           {
             role: 'user',

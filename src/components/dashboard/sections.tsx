@@ -721,7 +721,7 @@ export function SignInPrompt() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--baby-neutral-50)] px-6">
       <div className="max-w-md rounded-3xl bg-white p-10 text-center shadow-xl shadow-[rgba(107,142,156,0.15)]">
-        <span className="theme-pill theme-pill--primary">BabyBloom</span>
+        <span className="theme-pill theme-pill--primary">Nestlings Planner</span>
         <h1 className="mt-4 text-3xl font-semibold text-[var(--dreambaby-text)]">Monthly essentials, made simple</h1>
         <p className="mt-2 text-sm text-[var(--dreambaby-muted)]">
           Sign in to access your dashboard, recommendations, and timeline guidance. No account yet? Start onboarding to answer a few quick questions first.
@@ -760,11 +760,7 @@ export function SignInPrompt() {
               You&apos;re already signed in
             </button>
           ) : (
-            <SignInButton
-              mode="modal"
-              afterSignInUrl="/overview"
-              afterSignUpUrl="/onboarding"
-            >
+            <SignInButton mode="modal">
               <button className="w-full rounded-full bg-[var(--baby-primary-500)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--baby-primary-600)]">
                 Sign in to continue
               </button>

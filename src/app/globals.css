@@ -91,6 +91,15 @@ body {
   }
 }
 
+@keyframes advisor-outline-loop {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -1;
+  }
+}
+
 @keyframes advisor-prompt-float {
   0% {
     opacity: 0.9;
@@ -133,9 +142,34 @@ body {
   right: 28px;
 }
 
+.advisor-prompt-outline {
+  position: absolute;
+  top: -18px;
+  left: -18px;
+  width: calc(100% + 36px);
+  height: calc(100% + 54px);
+  pointer-events: none;
+  z-index: -1;
+  overflow: visible;
+}
+
+.advisor-prompt-outline-path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke: rgba(102, 138, 156, 0.28);
+  stroke-width: 1.6;
+  opacity: 0.4;
+  stroke-dasharray: 0.12 0.88;
+  animation: advisor-outline-loop 9s linear infinite;
+  filter: drop-shadow(0 0 2px rgba(111, 144, 153, 0.12));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .advisor-callout,
-  .advisor-prompt-bubble {
+  .advisor-prompt-bubble,
+  .advisor-prompt-outline-path {
     animation: none !important;
   }
 }

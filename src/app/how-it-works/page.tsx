@@ -2,16 +2,16 @@ import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
 
 export const metadata = {
-  title: "How BabyBloom Works",
+  title: "How Nestlings Planner Works",
   description:
-    "See how BabyBloom combines your family profile, milestone science, and AI-assisted research to surface trusted baby gear recommendations.",
+    "See how Nestlings Planner combines your family profile, milestone science, and AI-assisted research to surface trusted baby gear recommendations.",
 };
 
 const milestones = [
   {
     title: "1. Learn about your family",
     description:
-      "We start with a lightweight intake that captures due dates, household setup, budget guardrails, and style preferences. The answers only live in your BabyBloom account and never leave our Postgres database.",
+      "We start with a lightweight intake that captures due dates, household setup, budget guardrails, and style preferences. The answers only live in your Nestlings Planner account and never leave our Postgres database.",
   },
   {
     title: "2. Map the milestone journey",
@@ -49,7 +49,7 @@ const safeguards = [
   {
     title: "Human review on new listings",
     description:
-      "AI might propose a candidate, but it does not publish anything without a BabyBloom curator verifying safety recalls, price accuracy, and retailer reputation.",
+      "AI might propose a candidate, but it does not publish anything without a Nestlings Planner curator verifying safety recalls, price accuracy, and retailer reputation.",
   },
   {
     title: "Model guardrails",
@@ -75,7 +75,7 @@ export default function HowItWorksPage() {
             Built to make baby planning calmer, clearer, and more trustworthy
           </h1>
           <p className="mt-4 max-w-3xl text-lg text-[var(--dreambaby-muted)]">
-            BabyBloom blends evidence-based milestone planning, responsible AI, and human curation. Here’s exactly what happens behind the scenes so you know how every recommendation reaches your dashboard.
+            Nestlings Planner blends evidence-based milestone planning, responsible AI, and human curation. Here’s exactly what happens behind the scenes so you know how every recommendation reaches your dashboard.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-[var(--dreambaby-muted)]">
             <span className="inline-flex items-center gap-2 rounded-full bg-[var(--baby-primary-100)] px-4 py-2 font-semibold text-[var(--baby-primary-600)]">
@@ -113,7 +113,7 @@ export default function HowItWorksPage() {
             <div className="lg:w-1/2">
               <h2 className="text-2xl font-semibold text-[var(--dreambaby-text)]">Trust & safeguarding commitments</h2>
               <p className="mt-2 text-sm text-[var(--dreambaby-muted)]">
-                We designed BabyBloom for busy caregivers who need clarity and confidence—not surprises. Here are the guardrails that keep your plan reliable and your data safe.
+                We designed Nestlings Planner for busy caregivers who need clarity and confidence—not surprises. Here are the guardrails that keep your plan reliable and your data safe.
               </p>
             </div>
             <div className="grid flex-1 gap-5 md:grid-cols-2">

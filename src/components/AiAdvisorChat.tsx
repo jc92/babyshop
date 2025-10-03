@@ -65,6 +65,15 @@ const advisorPrompts = [
   "Getting baby's sleep space ready? Let's make a plan.",
 ] as const;
 
+const CHAT_STORAGE_KEY = "nestlings:advisor-chat";
+
+type PersistedChatState = {
+  isOpen: boolean;
+  inputValue: string;
+  milestoneId: MilestoneId;
+  messages: ChatBubble[];
+};
+
 function mergeClassNames(...classes: Array<string | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -161,6 +170,74 @@ export default function AiAdvisorChat() {
   const { activePrompt, activePromptIndex } = useAdvisorPromptRotation(advisorPrompts, {
     isPaused: isOpen,
   });
+  const storageHydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (storageHydratedRef.current) {
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
+      if (!raw) {
+        storageHydratedRef.current = true;
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as Partial<PersistedChatState> | null;
+      if (!parsed || typeof parsed !== "object") {
+        storageHydratedRef.current = true;
+        return;
+      }
+
+      if (typeof parsed.isOpen === "boolean") {
+        setIsOpen(parsed.isOpen);
+      }
+
+      if (typeof parsed.inputValue === "string") {
+        setInputValue(parsed.inputValue);
+      }
+
+      if (Array.isArray(parsed.messages)) {
+        setMessages(parsed.messages as ChatBubble[]);
+      }
+
+      if (parsed.milestoneId) {
+        setMilestoneId(parsed.milestoneId as MilestoneId);
+      }
+    } catch (error) {
+      console.error("Failed to read advisor chat state", error);
+    } finally {
+      storageHydratedRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!storageHydratedRef.current) {
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const payload: PersistedChatState = {
+      isOpen,
+      inputValue,
+      milestoneId,
+      messages,
+    };
+
+    try {
+      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      console.error("Failed to persist advisor chat state", error);
+    }
+  }, [isOpen, inputValue, messages, milestoneId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -917,7 +994,7 @@ export default function AiAdvisorChat() {
                       You&apos;re already signed in
                     </button>
                   ) : (
-                    <SignInButton mode="modal" afterSignUpUrl="/onboarding">
+                    <SignInButton mode="modal">
                       <button className="w-full rounded-md bg-[var(--baby-primary-500)] px-4 py-2 font-semibold text-white transition hover:bg-[var(--baby-primary-600)]">
                         Sign in
                       </button>
@@ -941,22 +1018,37 @@ export default function AiAdvisorChat() {
       {!isOpen && (
         <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-3">
           {activePrompt ? (
-            <div
-              key={activePromptIndex}
-              aria-live="polite"
-              role="status"
-              className="advisor-prompt-bubble relative pointer-events-none select-none rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[var(--dreambaby-text)] shadow-xl shadow-[rgba(111,144,153,0.22)]"
-            >
-              {activePrompt}
+            <div key={activePromptIndex} className="relative">
+              <div
+                aria-live="polite"
+                role="status"
+                className="advisor-prompt-bubble relative pointer-events-none select-none rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[var(--dreambaby-text)] shadow-xl shadow-[rgba(111,144,153,0.22)]"
+              >
+                <svg
+                  className="advisor-prompt-outline"
+                  viewBox="0 0 140 80"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M18 4 H118 Q134 4 134 20 V42 Q134 58 118 58 H94 L118 74 90 58 H18 Q4 58 4 42 V20 Q4 4 18 4 Z"
+                    pathLength="1"
+                    className="advisor-prompt-outline-path"
+                  />
+                </svg>
+                {activePrompt}
+              </div>
             </div>
           ) : null}
           <div className="relative">
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-0 -z-10 animate-[pulse_4s_ease-in-out_infinite] rounded-full border border-[var(--baby-primary-200)]/70" />
+              className="pointer-events-none absolute inset-0 -z-10 animate-[pulse_4s_ease-in-out_infinite] rounded-full border border-[var(--baby-primary-200)]/70"
+            />
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-0 -z-20 animate-[ping_4s_ease-in-out_infinite] rounded-full bg-[var(--baby-primary-200)]/30" />
+              className="pointer-events-none absolute inset-0 -z-20 animate-[ping_4s_ease-in-out_infinite] rounded-full bg-[var(--baby-primary-200)]/30"
+            />
             <button
               type="button"
               onClick={handleToggle}

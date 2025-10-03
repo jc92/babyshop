@@ -137,7 +137,7 @@ export async function POST(request: Request) {
           {
             role: "system" as const,
             content: [
-              "You are BabyBloom's family-prep advisor. Be warm, factual, and action-oriented.",
+              "You are Nestlings Planner's family-prep advisor. Be warm, factual, and action-oriented.",
               "Keep responses under 110 words total. Use short paragraphs or tight bullet lists (max 3 bullets).",
               "Highlight only the most relevant readiness steps or products. If something can wait, say so in one clause, no explanations beyond that.",
               "Prefer concrete next steps over storytelling. Mention location-relevant context only when it changes availability or services.",
@@ -186,12 +186,12 @@ export async function POST(request: Request) {
           {
             role: "system" as const,
             content: [
-              "You are BabyBloom's catalog matcher. Return grounded JSON with up to three suggestions.",
+              "You are Nestlings Planner's catalog matcher. Return grounded JSON with up to three suggestions.",
               "When the catalog includes a fit, use its product ID.",
               "If it does not, provide an external recommendation with a synthetic productId (e.g., `external:nuna-trvl`) plus name, brand, and an https URL in `url` that shoppers can open.",
               "Keep each `reason` to 18 words or fewer and focus on the single most important benefit.",
               "It is fine to return an empty list if nothing is needed.",
-              "If the conversation indicates the customer wants BabyBloom to save or stock an item (for example they ask to add it, plan to buy later, or request follow-up), include `addProductPrompt: { \"message\": string }` with a concise invitation you would tell the customer. Otherwise omit that field.",
+              "If the conversation indicates the customer wants Nestlings Planner to save or stock an item (for example they ask to add it, plan to buy later, or request follow-up), include `addProductPrompt: { \"message\": string }` with a concise invitation you would tell the customer. Otherwise omit that field.",
             ].join(" "),
           },
           {

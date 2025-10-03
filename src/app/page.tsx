@@ -130,7 +130,7 @@ export default function Home() {
             </span>
             <h2 className="text-2xl font-semibold text-[var(--dreambaby-text)]">What you’ll unlock inside Nestlings</h2>
             <p className="mx-auto max-w-2xl text-sm text-[var(--dreambaby-muted)]">
-              BabyBloom keeps everyone aligned—from birth plans to toddler upgrades—so the right gear, guidance, and reminders appear without endless spreadsheets.
+              Nestlings Planner keeps everyone aligned—from birth plans to toddler upgrades—so the right gear, guidance, and reminders appear without endless spreadsheets.
             </p>
           </header>
 

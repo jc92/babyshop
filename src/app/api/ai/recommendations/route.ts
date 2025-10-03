@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content: "You are BabyBloom's curation agent. Create milestone-specific product bundles using the provided catalog. Always ground recommendations in the supplied data—especially aiCategories.best_practices, product.review_sources, review summaries, and safety_notes. If information is missing, note the gap instead of inventing details.",
+          content: "You are Nestlings Planner's curation agent. Create milestone-specific product bundles using the provided catalog. Always ground recommendations in the supplied data—especially aiCategories.best_practices, product.review_sources, review summaries, and safety_notes. If information is missing, note the gap instead of inventing details.",
         },
         {
           role: "user",

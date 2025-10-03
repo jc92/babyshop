@@ -51,7 +51,7 @@ export function Navigation() {
           onClick={() => handleNavigate("/")}
         >
           <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[var(--baby-primary-200)] to-[var(--baby-secondary-200)] text-sm font-bold text-[var(--dreambaby-text)]">
-            BB
+            NP
           </span>
           <span className="hidden sm:block">Nestlings Planner</span>
         </button>
@@ -124,11 +124,7 @@ export function Navigation() {
                 </>
               ) : null
             ) : isLoaded ? (
-              <SignInButton
-                mode="modal"
-                afterSignInUrl="/overview"
-                afterSignUpUrl="/onboarding"
-              >
+              <SignInButton mode="modal">
                 <button
                   type="button"
                   className="hidden rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)] md:block"
@@ -231,11 +227,7 @@ export function Navigation() {
               ) : null
             ) : isLoaded ? (
               <div className="mt-5">
-                <SignInButton
-                  mode="modal"
-                  afterSignInUrl="/overview"
-                  afterSignUpUrl="/onboarding"
-                >
+                <SignInButton mode="modal">
                   <button className="w-full rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)]">
                     Sign in / create account
                   </button>

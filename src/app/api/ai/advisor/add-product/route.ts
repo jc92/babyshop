@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         {
           role: "system",
           content:
-            "You are BabyBloom's product curator. Use the conversation to gather product information. Respond with JSON: {\"product\": {...}} matching the provided schema. Do not fabricate unknown fields—set them to null. Always include name, category, and milestoneIds (use provided milestone if none mentioned).",
+            "You are Nestlings Planner's product curator. Use the conversation to gather product information. Respond with JSON: {\"product\": {...}} matching the provided schema. Do not fabricate unknown fields—set them to null. Always include name, category, and milestoneIds (use provided milestone if none mentioned).",
         },
         {
           role: "system",

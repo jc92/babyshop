@@ -63,6 +63,7 @@ export default function CuratedPage() {
       </main>
 
       <DeferredRender
+        eager
         fallback={
           <div className="mx-auto flex max-w-6xl items-center justify-center px-6 pb-12 text-sm text-[var(--dreambaby-muted)]">
             Initializing AI advisor…
