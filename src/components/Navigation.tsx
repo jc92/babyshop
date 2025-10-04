@@ -1,17 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { UserButton, SignInButton } from "@clerk/nextjs";
 import { sectionNavItems } from "@/lib/navigation";
-import { clerkEnabled, useSafeUser } from "@/lib/clerkClient";
+import type { AuthSnapshot } from "@/components/navigation/AuthControls";
+
+const AuthControls = dynamic(() => import("@/components/navigation/AuthControls").then((mod) => mod.AuthControls), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center gap-3" aria-hidden>
+      <span className="hidden h-9 w-24 rounded-full bg-[var(--baby-neutral-200)] md:block" />
+    </div>
+  ),
+});
 
 export function Navigation() {
-  const { isLoaded, isSignedIn, user } = useSafeUser();
   const pathname = usePathname();
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [authSnapshot, setAuthSnapshot] = useState<AuthSnapshot>({
+    isLoaded: false,
+    isSignedIn: false,
+    firstName: null,
+    email: null,
+  });
+
+  const handleAuthSnapshot = useCallback((snapshot: AuthSnapshot) => {
+    setAuthSnapshot((previous) => {
+      if (
+        previous.isLoaded === snapshot.isLoaded &&
+        previous.isSignedIn === snapshot.isSignedIn &&
+        previous.firstName === snapshot.firstName &&
+        previous.email === snapshot.email
+      ) {
+        return previous;
+      }
+      return snapshot;
+    });
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,7 +88,7 @@ export function Navigation() {
           {sectionNavItems.map((section) => {
             const active = isActive(section.href);
             const emphasizeProfile = section.id === "profile";
-            const profileBadgeLabel = isSignedIn ? "Update" : "Start here";
+            const profileBadgeLabel = authSnapshot.isSignedIn ? "Update" : "Start here";
             const buttonClasses = `inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
               active
                 ? "bg-[var(--baby-primary-100)] text-[var(--dreambaby-text)]"
@@ -88,69 +116,10 @@ export function Navigation() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {!isSignedIn && (
-            <button
-              type="button"
-              className="hidden rounded-full border border-[var(--baby-primary-200)] bg-white px-4 py-2 text-sm font-semibold text-[var(--baby-primary-600)] shadow-sm transition hover:border-[var(--baby-primary-300)] hover:bg-[var(--baby-primary-50)] md:block"
-              onClick={() => handleNavigate("/onboarding")}
-            >
-              Start onboarding
-            </button>
-          )}
-          {clerkEnabled ? (
-            isSignedIn ? (
-              isLoaded ? (
-                <>
-                  <button
-                    type="button"
-                    className="hidden rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)] md:block"
-                    onClick={() => handleNavigate("/profile")}
-                  >
-                    Manage profile
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <span className="hidden text-sm font-medium text-[var(--dreambaby-muted)] md:inline">
-                      {user?.firstName ? `Hi, ${user.firstName}` : "Account"}
-                    </span>
-                    <UserButton
-                      afterSignOutUrl="/"
-                      appearance={{
-                        elements: {
-                          avatarBox: "w-9 h-9 border border-[var(--baby-neutral-300)]",
-                        },
-                      }}
-                    />
-                  </div>
-                </>
-              ) : null
-            ) : isLoaded ? (
-              <SignInButton mode="modal">
-                <button
-                  type="button"
-                  className="hidden rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)] md:block"
-                >
-                  Sign in / create account
-                </button>
-              </SignInButton>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="hidden rounded-full bg-[var(--baby-neutral-300)] px-4 py-2 text-sm font-semibold text-white shadow-sm md:block"
-              >
-                Preparing sign-in…
-              </button>
-            )
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="hidden rounded-full bg-[var(--baby-neutral-300)] px-4 py-2 text-sm font-semibold text-white shadow-sm md:block"
-            >
-              Sign-in unavailable
-            </button>
-          )}
-
+          <AuthControls
+            onNavigate={handleNavigate}
+            onAuthStateChange={handleAuthSnapshot}
+          />
           <button
             type="button"
             className="md:hidden rounded-full border border-[var(--baby-neutral-300)] px-3 py-1.5 text-sm font-medium text-[var(--dreambaby-text)]"
@@ -173,7 +142,7 @@ export function Navigation() {
             {sectionNavItems.map((section) => {
               const active = isActive(section.href);
               const emphasizeProfile = section.id === "profile";
-              const profileBadgeLabel = isSignedIn ? "Update" : "Start here";
+              const profileBadgeLabel = authSnapshot.isSignedIn ? "Update" : "Start here";
               return (
                 <button
                   key={section.id}
@@ -201,48 +170,11 @@ export function Navigation() {
               );
             })}
           </nav>
-          {!isSignedIn && (
-            <button
-              type="button"
-              className="mt-4 w-full rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)]"
-              onClick={() => handleNavigate("/onboarding")}
-            >
-              Start onboarding
-            </button>
-          )}
-          {clerkEnabled ? (
-            isSignedIn ? (
-              isLoaded ? (
-                <div className="mt-5 flex items-center justify-between rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                      Signed in
-                    </p>
-                    <p className="text-sm font-medium text-[var(--dreambaby-text)]">
-                      {user?.firstName || user?.primaryEmailAddress?.emailAddress || "Account"}
-                    </p>
-                  </div>
-                  <UserButton afterSignOutUrl="/" />
-                </div>
-              ) : null
-            ) : isLoaded ? (
-              <div className="mt-5">
-                <SignInButton mode="modal">
-                  <button className="w-full rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)]">
-                    Sign in / create account
-                  </button>
-                </SignInButton>
-              </div>
-            ) : (
-              <p className="mt-5 text-xs text-[var(--dreambaby-muted)]">
-                Preparing sign-in…
-              </p>
-            )
-          ) : (
-            <p className="mt-5 text-xs text-[var(--dreambaby-muted)]">
-              Sign-in is disabled in this build.
-            </p>
-          )}
+          <AuthControls
+            variant="mobile"
+            onNavigate={handleNavigate}
+            onAuthStateChange={handleAuthSnapshot}
+          />
         </div>
       )}
     </header>

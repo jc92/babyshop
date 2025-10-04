@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
-import { defaultMilestones, products } from "@/data/catalog";
+import { products } from "@/data/catalog";
+import { defaultMilestones } from "@/data/defaultMilestones";
 import { heroCopy } from "@/lib/copy/hero";
 import { sectionNavItems } from "@/lib/navigation";
 

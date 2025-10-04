@@ -79,13 +79,15 @@ flowchart TD
    - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
    - `POSTGRES_URL`
    - `OPENAI_API_KEY` (and optional `OPENAI_PROJECT`)
+   - `ADMIN_CLERK_IDS` (comma-separated Clerk user IDs with admin access)
+   - Optional hardening knobs: `SCRAPE_ALLOWED_HOSTS`, `SCRAPE_TIMEOUT_MS`
 4. Start the dev server: `pnpm dev`
-5. In another shell seed the database:
+5. In another shell prepare the database (requires access to your Postgres instance):
    ```bash
-   curl -X POST http://localhost:3000/api/database/migrate
-   curl -X POST http://localhost:3000/api/products/seed
+   pnpm dlx tsx scripts/setup-database.ts
    ```
-6. Visit `http://localhost:3000` (main app) and `http://localhost:3000/how-it-works` for the guided tour.
+6. Optionally load sample catalog data: `curl -X POST http://localhost:3000/api/products/seed`
+7. Visit `http://localhost:3000` (main app) and `http://localhost:3000/how-it-works` for the guided tour.
 
 ### Useful Commands
 ```bash
@@ -96,7 +98,7 @@ ANALYZE=true pnpm build  # Optional bundle report (requires @next/bundle-analyze
 ```
 
 ## Operational Notes
-- Whenever the schema changes, re-run the migration endpoint so Vercel Postgres picks up new columns (e.g., baby name/location fields).
+- Whenever the schema changes, rerun `pnpm dlx tsx scripts/setup-database.ts` so Vercel Postgres picks up new columns and seeded reference data.
 - AI endpoints call OpenAI; throttle or stub when running automated tests.
 - The advisor chat and dashboard import Clerk components dynamically so unauthenticated experiences still load quickly.
 

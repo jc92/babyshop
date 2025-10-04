@@ -11,6 +11,12 @@ const navigationState = vi.hoisted(() => ({
   pathname: "/overview",
   clerkEnabled: true,
   useSafeUser: vi.fn(),
+  authSnapshot: {
+    isSignedIn: false,
+    isLoaded: true,
+    firstName: null as string | null,
+    email: null as string | null,
+  },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -39,6 +45,41 @@ vi.mock("@/lib/clerkClient", () => ({
   useSafeUser: navigationState.useSafeUser,
 }));
 
+vi.mock("@/components/navigation/AuthControls", () => {
+  const React = require("react");
+  const AuthControls = ({
+    onNavigate,
+    onAuthStateChange,
+  }: {
+    onNavigate: (href: string) => void;
+    onAuthStateChange?: (snapshot: unknown) => void;
+  }) => {
+    const snapshot = navigationState.authSnapshot;
+
+    React.useEffect(() => {
+      onAuthStateChange?.(snapshot);
+    }, [snapshot, onAuthStateChange]);
+
+    if (snapshot.isSignedIn) {
+      return (
+        <div data-testid="auth-controls">
+          <button type="button" onClick={() => onNavigate("/profile")}>Manage profile</button>
+          <span>Hi, {snapshot.firstName ?? "Account"}</span>
+          <div data-testid="user-button" />
+        </div>
+      );
+    }
+
+    return (
+      <div data-testid="auth-controls">
+        <button type="button">Sign in / create account</button>
+      </div>
+    );
+  };
+
+  return { AuthControls };
+});
+
 import { Navigation } from "@/components/Navigation";
 
 describe("Navigation", () => {
@@ -47,32 +88,50 @@ describe("Navigation", () => {
     navigationState.useSafeUser.mockReset();
     navigationState.pathname = "/overview";
     navigationState.clerkEnabled = true;
+    navigationState.authSnapshot = {
+      isSignedIn: false,
+      isLoaded: true,
+      firstName: null,
+      email: null,
+    };
   });
 
-  it("renders signed-in controls when the user is authenticated", () => {
+  it("renders signed-in controls when the user is authenticated", async () => {
     navigationState.useSafeUser.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
       user: { firstName: "Jamie" },
     });
+    navigationState.authSnapshot = {
+      isSignedIn: true,
+      isLoaded: true,
+      firstName: "Jamie",
+      email: "jamie@example.com",
+    };
 
     render(<Navigation />);
 
-    expect(screen.getByText("Manage profile")).toBeVisible();
+    expect(await screen.findByText("Manage profile")).toBeVisible();
     expect(screen.getByText("Hi, Jamie")).toBeVisible();
     expect(screen.getByTestId("user-button")).toBeInTheDocument();
   });
 
-  it("renders a sign-in call to action when the user is signed out", () => {
+  it("renders a sign-in call to action when the user is signed out", async () => {
     navigationState.useSafeUser.mockReturnValue({
       isLoaded: true,
       isSignedIn: false,
       user: null,
     });
+    navigationState.authSnapshot = {
+      isSignedIn: false,
+      isLoaded: true,
+      firstName: null,
+      email: null,
+    };
 
     render(<Navigation />);
 
-    expect(screen.getAllByText("Sign in / create account")).not.toHaveLength(0);
+    expect(await screen.findAllByText("Sign in / create account")).not.toHaveLength(0);
   });
 
   it("toggles the mobile navigation", async () => {
@@ -81,6 +140,12 @@ describe("Navigation", () => {
       isSignedIn: false,
       user: null,
     });
+    navigationState.authSnapshot = {
+      isSignedIn: false,
+      isLoaded: true,
+      firstName: null,
+      email: null,
+    };
 
     render(<Navigation />);
 

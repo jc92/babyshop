@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { ProductDiscoveryAgent } from '@/lib/agents/productDiscoveryAgent';
+import { isAdminUser } from "@/lib/auth/admin";
 
 const preferencesSchema = z.object({
   budgetTier: z.enum(['budget', 'standard', 'premium', 'luxury']).optional(),
@@ -23,6 +24,10 @@ export async function POST(request: Request) {
 
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!isAdminUser(userId)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
@@ -51,4 +56,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

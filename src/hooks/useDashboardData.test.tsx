@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { defaultMilestones, type ProductSummary } from "@/data/catalog";
+import { defaultMilestones, type ProductSummary } from "@/data/defaultMilestones";
 import { useDashboardData } from "./useDashboardData";
 import { useSafeUser } from "@/lib/clerkClient";
 import { MilestoneService } from "@/lib/milestones/service";

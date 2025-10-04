@@ -1,5 +1,26 @@
 import * as cheerio from 'cheerio';
 
+const RAW_ALLOWED_HOSTS = process.env.SCRAPE_ALLOWED_HOSTS ?? 'amazon.com,www.amazon.com';
+const SCRAPE_TIMEOUT_MS = Number(process.env.SCRAPE_TIMEOUT_MS ?? 8000);
+
+const allowedHostnames = RAW_ALLOWED_HOSTS.split(',')
+  .map((value) => value.trim().toLowerCase())
+  .filter((value) => value.length > 0);
+
+function isHostAllowed(url: URL): boolean {
+  if (allowedHostnames.length === 0) {
+    return false;
+  }
+
+  return allowedHostnames.some((allowed) => {
+    if (allowed.startsWith('*')) {
+      const suffix = allowed.slice(1);
+      return url.hostname.toLowerCase().endsWith(suffix);
+    }
+    return url.hostname.toLowerCase() === allowed;
+  });
+}
+
 function getBestProductImage($: cheerio.Root, baseUrl?: string): string | undefined {
   // Try multiple selectors in order of preference for product images
   const imageSelectors = [
@@ -61,12 +82,33 @@ function getBestProductImage($: cheerio.Root, baseUrl?: string): string | undefi
 
 export async function scrapeProductPage(url: string): Promise<string> {
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-    
+    const parsedUrl = new URL(url);
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Only HTTP(S) URLs can be scraped.');
+    }
+
+    if (!isHostAllowed(parsedUrl)) {
+      throw new Error(`Scraping blocked for host: ${parsedUrl.hostname}`);
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, Math.max(1000, SCRAPE_TIMEOUT_MS));
+
+    let response: Response;
+    try {
+      response = await fetch(parsedUrl.toString(), {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -100,6 +142,10 @@ export async function scrapeProductPage(url: string): Promise<string> {
     return JSON.stringify(cleanedData, null, 2);
     
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Timed out fetching product page after ${SCRAPE_TIMEOUT_MS}ms`);
+    }
+
     console.error('Web scraping error:', error);
     throw new Error(`Failed to scrape product page: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }

@@ -17,21 +17,6 @@ const categoryWeights: Partial<Record<CategoryId, number>> = {
   safety: 1.1,
 };
 
-const paletteMap: Record<string, string[]> = {
-  neutral: ["neutral", "warm", "cool"],
-  pastel: ["pastel", "neutral"],
-  bold: ["bold", "cool", "warm"],
-  warm: ["warm", "neutral"],
-  cool: ["cool", "neutral"],
-};
-
-const materialMatch: Record<PreferenceProfile["materialFocus"], string[]> = {
-  organic: ["organic-cotton", "bamboo", "wood"],
-  performance: ["silicone", "plastic", "recycled-poly"],
-  recycled: ["recycled-poly", "canvas", "steel"],
-  classic: ["wood", "cotton", "plastic"],
-};
-
 const budgetThreshold: Record<PreferenceProfile["budget"], number> = {
   essentials: 120,
   balanced: 220,
@@ -48,20 +33,6 @@ export function scoreProduct(
   if (input.preferredCategories.includes(product.category)) {
     score += (categoryWeights[product.category] ?? 1) * 1.5;
     reasons.push(`Matches category focus on ${product.category}.`);
-  }
-
-  if (product.colors.some((c) => paletteMap[input.colorPalette].includes(c))) {
-    score += 0.8;
-    reasons.push("Aligned with preferred color palette.");
-  }
-
-  if (
-    product.materials.some((material) =>
-      materialMatch[input.materialFocus].includes(material),
-    )
-  ) {
-    score += 0.8;
-    reasons.push("Material choice fits style preferences.");
   }
 
   if (input.ecoPriority && product.isEcoFriendly) {
@@ -95,4 +66,3 @@ export function rankProducts(
     .sort((a, b) => b.score - a.score)
     .slice(0, 8);
 }
-

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
 import { auth } from '@clerk/nextjs/server';
+import { isAdminUser } from "@/lib/auth/admin";
 
 // Sample product data
 const sampleProducts = [
@@ -17,7 +18,7 @@ const sampleProducts = [
     endDate: "2024-12-31",
     ageRangeMonthsMin: 0,
     ageRangeMonthsMax: 6,
-    milestoneIds: ["newborn", "0-3months"],
+    milestoneIds: ["prenatal", "newborn"],
     tags: ["organic", "cotton", "newborn"],
     ecoFriendly: true,
     premium: false,
@@ -30,7 +31,10 @@ const sampleProducts = [
     periodEndMonth: 6,
     reviewSources: [
       { source: "Amazon" },
-      { source: "BabyGearLab" }
+      { source: "BabyGearLab", url: "https://www.babygearlab.com/topics/clothing/best-baby-onesie" }
+    ],
+    externalReviewUrls: [
+      { source: "BabyGearLab", url: "https://www.babygearlab.com/topics/clothing/best-baby-onesie" }
     ],
     safetyNotes: "Layer over diapers only; avoid loose blankets in crib.",
   },
@@ -47,7 +51,7 @@ const sampleProducts = [
     endDate: "2024-12-31",
     ageRangeMonthsMin: 0,
     ageRangeMonthsMax: 36,
-    milestoneIds: ["newborn", "0-3months", "3-6months", "6-12months"],
+    milestoneIds: ["newborn", "month3", "month6", "month9", "year1"],
     tags: ["monitoring", "safety", "premium"],
     ecoFriendly: false,
     premium: true,
@@ -60,7 +64,11 @@ const sampleProducts = [
     periodEndMonth: 24,
     reviewSources: [
       { source: "Wirecutter", url: "https://www.nytimes.com/wirecutter/reviews/best-video-baby-monitors/" },
-      { source: "Babylist" }
+      { source: "Babylist", url: "https://www.babylist.com/hello-baby/best-baby-monitors" }
+    ],
+    externalReviewUrls: [
+      { source: "Wirecutter", url: "https://www.nytimes.com/wirecutter/reviews/best-video-baby-monitors/" },
+      { source: "Babylist", url: "https://www.babylist.com/hello-baby/best-baby-monitors" }
     ],
     safetyNotes: "Remind caregivers monitors are not medical devices; keep cords 3ft from crib.",
   },
@@ -77,7 +85,7 @@ const sampleProducts = [
     endDate: "2024-12-31",
     ageRangeMonthsMin: 0,
     ageRangeMonthsMax: 24,
-    milestoneIds: ["newborn", "0-3months", "3-6months"],
+    milestoneIds: ["prenatal", "newborn", "month3"],
     tags: ["eco-friendly", "recycled", "sustainable"],
     ecoFriendly: true,
     premium: false,
@@ -89,8 +97,12 @@ const sampleProducts = [
     periodStartMonth: 0,
     periodEndMonth: 24,
     reviewSources: [
-      { source: "Lucie's List" },
-      { source: "Fatherly" }
+      { source: "Lucie's List", url: "https://www.lucieslist.com/diaper-bags" },
+      { source: "Fatherly", url: "https://www.fatherly.com/gear/best-diaper-bags" }
+    ],
+    externalReviewUrls: [
+      { source: "Lucie's List", url: "https://www.lucieslist.com/diaper-bags" },
+      { source: "Fatherly", url: "https://www.fatherly.com/gear/best-diaper-bags" }
     ],
     safetyNotes: "Distribute weight evenly to reduce caregiver strain; clip on stroller only if approved by manufacturer.",
   },
@@ -107,7 +119,7 @@ const sampleProducts = [
     endDate: "2024-12-31",
     ageRangeMonthsMin: 0,
     ageRangeMonthsMax: 36,
-    milestoneIds: ["newborn", "0-3months", "3-6months", "6-12months"],
+    milestoneIds: ["prenatal", "newborn", "month3", "month6", "month9", "year1"],
     tags: ["luxury", "premium", "all-terrain"],
     ecoFriendly: false,
     premium: true,
@@ -119,8 +131,12 @@ const sampleProducts = [
     periodStartMonth: 0,
     periodEndMonth: 36,
     reviewSources: [
-      { source: "Car Seats for the Littles" },
-      { source: "What to Expect" }
+      { source: "Car Seats for the Littles", url: "https://csftl.org/stroller-safety" },
+      { source: "What to Expect", url: "https://www.whattoexpect.com/baby-products/strollers" }
+    ],
+    externalReviewUrls: [
+      { source: "Car Seats for the Littles", url: "https://csftl.org/stroller-safety" },
+      { source: "What to Expect", url: "https://www.whattoexpect.com/baby-products/strollers" }
     ],
     safetyNotes: "Encourage CPST car seat check; reference stroller recall registry.",
   },
@@ -137,7 +153,7 @@ const sampleProducts = [
     endDate: "2024-12-31",
     ageRangeMonthsMin: 4,
     ageRangeMonthsMax: 12,
-    milestoneIds: ["4-6months", "6-12months"],
+    milestoneIds: ["month6", "month9", "year1"],
     tags: ["organic", "first-foods", "nutrition"],
     ecoFriendly: true,
     premium: false,
@@ -149,8 +165,12 @@ const sampleProducts = [
     periodStartMonth: 4,
     periodEndMonth: 12,
     reviewSources: [
-      { source: "Solid Starts" },
-      { source: "The Bump" }
+      { source: "Solid Starts", url: "https://solidstarts.com/best-first-foods" },
+      { source: "The Bump", url: "https://www.thebump.com/a/best-baby-food" }
+    ],
+    externalReviewUrls: [
+      { source: "Solid Starts", url: "https://solidstarts.com/best-first-foods" },
+      { source: "The Bump", url: "https://www.thebump.com/a/best-baby-food" }
     ],
     safetyNotes: "Emphasize pediatrician consult before solids; store pouches refrigerated after opening.",
   }
@@ -172,6 +192,10 @@ export async function POST() {
   
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAdminUser(userId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -197,9 +221,9 @@ export async function POST() {
           ${product.ecoFriendly}, 
           ${product.premium}, ${product.rating}, ${product.reviewCount}, 
           ${product.affiliateUrl}, ${product.inStock},
-          ${product.periodStartMonth ?? null}, ${product.periodEndMonth ?? null},
+        ${product.periodStartMonth ?? null}, ${product.periodEndMonth ?? null},
           ${JSON.stringify(product.reviewSources ?? [])}, ${product.safetyNotes || null},
-          ${JSON.stringify(product.reviewSources ?? [])}
+          ${JSON.stringify(product.externalReviewUrls ?? [])}
         )
         RETURNING id
       `;

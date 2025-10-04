@@ -6,15 +6,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const milestoneListMock = vi.hoisted(() => vi.fn());
 const useSafeUserMock = vi.hoisted(() => vi.fn());
 
-vi.mock("react-markdown", () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock("remark-gfm", () => ({
-  default: () => null,
-}));
-
 vi.mock("@clerk/nextjs", async () => {
   const ReactModule = await vi.importActual<typeof import("react")>("react");
   const { createElement, Fragment } = ReactModule;
@@ -35,7 +26,7 @@ vi.mock("@/lib/clerkClient", () => ({
   useSafeUser: useSafeUserMock,
 }));
 
-import { defaultMilestones } from "@/data/catalog";
+import { defaultMilestones } from "@/data/defaultMilestones";
 import AiAdvisorChat from "@/components/AiAdvisorChat";
 
 describe("AiAdvisorChat", () => {

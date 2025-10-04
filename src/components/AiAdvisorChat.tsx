@@ -1,23 +1,13 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-  type HTMLAttributes,
-} from "react";
-import ReactMarkdown from "react-markdown";
-import type { Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { SignInButton } from "@clerk/nextjs";
-import { defaultMilestones, type MilestoneId } from "@/data/catalog";
+import { type Milestone, type MilestoneId } from "@/data/catalog";
 import { MilestoneService } from "@/lib/milestones/service";
 import { clerkEnabled, useSafeUser } from "@/lib/clerkClient";
 import { toIsoDateString } from "@/lib/dateCalculations";
 import { useAdvisorPromptRotation } from "@/hooks/useAdvisorPromptRotation";
+import { MiniMarkdown } from "@/components/MiniMarkdown";
 
 type AdvisorProfile = {
   dueDate?: string;
@@ -78,67 +68,6 @@ function mergeClassNames(...classes: Array<string | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-const markdownComponents: Components = {
-  p: ({ className, ...props }) => (
-    <p {...props} className={mergeClassNames("mb-2 leading-relaxed last:mb-0", className)} />
-  ),
-  a: ({ className, ...props }) => (
-    <a
-      {...props}
-      className={mergeClassNames("underline underline-offset-2 hover:opacity-80", className)}
-      target="_blank"
-      rel="noreferrer"
-    />
-  ),
-  ul: ({ className, ...props }) => (
-    <ul {...props} className={mergeClassNames("mb-2 list-disc pl-5 last:mb-0", className)} />
-  ),
-  ol: ({ className, ...props }) => (
-    <ol {...props} className={mergeClassNames("mb-2 list-decimal pl-5 last:mb-0", className)} />
-  ),
-  li: ({ className, ...props }) => (
-    <li {...props} className={mergeClassNames("mb-1", className)} />
-  ),
-  code: ({
-    inline,
-    className,
-    children,
-    ...props
-  }: {
-    inline?: boolean;
-    className?: string;
-    children?: ReactNode;
-  } & HTMLAttributes<HTMLElement>) => {
-    if (inline) {
-      return (
-        <code
-          {...props}
-          className={mergeClassNames("rounded bg-black/10 px-1 py-0.5 text-[0.85em]", className)}
-        >
-          {children}
-        </code>
-      );
-    }
-
-    return (
-      <pre className="mb-2 overflow-x-auto rounded-md bg-slate-900 px-3 py-2 text-slate-100 last:mb-0">
-        <code {...props} className={mergeClassNames("text-xs leading-relaxed", className)}>
-          {children}
-        </code>
-      </pre>
-    );
-  },
-  blockquote: ({ className, ...props }) => (
-    <blockquote
-      {...props}
-      className={mergeClassNames(
-        "mb-2 border-l-4 border-[var(--baby-secondary-200)] pl-3 italic text-[var(--dreambaby-muted)] last:mb-0",
-        className,
-      )}
-    />
-  ),
-};
-
 function formatPrice(priceCents: number | null | undefined) {
   if (priceCents === null || priceCents === undefined) {
     return null;
@@ -152,8 +81,8 @@ export default function AiAdvisorChat() {
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<ChatBubble[]>([]);
   const [profile, setProfile] = useState<AdvisorProfile | null>(null);
-  const fallbackMilestoneId = (defaultMilestones[0]?.id ?? "prenatal") as MilestoneId;
-  const [availableMilestones, setAvailableMilestones] = useState(defaultMilestones);
+  const FALLBACK_MILESTONE_ID: MilestoneId = "prenatal";
+  const [availableMilestones, setAvailableMilestones] = useState<Milestone[]>([]);
   const milestoneOptions = useMemo(
     () =>
       availableMilestones.map((milestone) => ({
@@ -162,7 +91,7 @@ export default function AiAdvisorChat() {
       })),
     [availableMilestones],
   );
-  const [milestoneId, setMilestoneId] = useState<MilestoneId>(fallbackMilestoneId);
+  const [milestoneId, setMilestoneId] = useState<MilestoneId>(FALLBACK_MILESTONE_ID);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingProductUrl, setIsCreatingProductUrl] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -171,6 +100,28 @@ export default function AiAdvisorChat() {
     isPaused: isOpen,
   });
   const storageHydratedRef = useRef(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const module = await import("@/data/defaultMilestones");
+        if (!isMounted) {
+          return;
+        }
+        if (module?.defaultMilestones) {
+          setAvailableMilestones(module.defaultMilestones);
+        }
+      } catch (error) {
+        console.error("Failed to load fallback milestones", error);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (storageHydratedRef.current) {
@@ -845,11 +796,10 @@ export default function AiAdvisorChat() {
                       }`}
                     >
                       {message.role === "assistant" ? (
-                        <div className="space-y-2 text-[0.95rem] leading-relaxed">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                            {message.content}
-                          </ReactMarkdown>
-                        </div>
+                        <MiniMarkdown
+                          content={message.content}
+                          className="space-y-2 text-[0.95rem] leading-relaxed"
+                        />
                       ) : (
                         <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
                       )}

@@ -82,56 +82,42 @@ function isMissingProfileOverviewsTable(error: unknown): boolean {
   );
 }
 
-async function ensureProfileTables() {
-  await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
-  await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`;
+function isMissingUserProfilesTable(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /relation "user_profiles" does not exist/i.test(error.message)
+  );
+}
 
-  await sql`
-    CREATE TABLE IF NOT EXISTS users (
-      clerk_id TEXT PRIMARY KEY,
-      email TEXT,
-      first_name TEXT,
-      last_name TEXT,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
+function isMissingUsersTable(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /relation "users" does not exist/i.test(error.message)
+  );
+}
 
-  await sql`
-    CREATE TABLE IF NOT EXISTS user_profiles (
-      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-      user_id TEXT UNIQUE NOT NULL REFERENCES users(clerk_id) ON DELETE CASCADE,
-      due_date DATE,
-      baby_gender TEXT CHECK (baby_gender IN ('boy', 'girl', 'surprise')),
-      budget_tier TEXT CHECK (budget_tier IN ('budget', 'standard', 'premium', 'luxury')),
-      color_palette TEXT,
-      material_focus TEXT,
-      eco_priority BOOLEAN DEFAULT FALSE,
-      location TEXT,
-      baby_name TEXT,
-      baby_nickname TEXT,
-      hospital TEXT,
-      provider TEXT,
-      household_setup TEXT,
-      care_network TEXT,
-      medical_notes TEXT,
-      birth_date DATE,
-      parent_one_name TEXT,
-      parent_two_name TEXT,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
+class ProfileTablesNotReadyError extends Error {
+  constructor(message: string = "Profile tables are not available") {
+    super(message);
+    this.name = "ProfileTablesNotReadyError";
+  }
+}
 
-  await sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS location TEXT;`;
-  await sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS baby_name TEXT;`;
-  await sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS parent_one_name TEXT;`;
-  await sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS parent_two_name TEXT;`;
+function rethrowIfProfileTablesMissing(error: unknown): never {
+  if (
+    isMissingUserProfilesTable(error) ||
+    isMissingUsersTable(error) ||
+    isMissingProfileOverviewsTable(error)
+  ) {
+    throw new ProfileTablesNotReadyError(
+      "Profile tables are missing. Run the database setup before accessing profile data.",
+    );
+  }
+
+  throw error;
 }
 
 async function upsertUserProfile(userId: string, plan: PlanInput, baby: BabyInput) {
-  await ensureProfileTables();
-
   const dueDate = normalizeDate(plan.dueDate);
   const babyGender = normalizeText(plan.babyGender);
   const budgetTier = mapBudgetToDb(plan.budget ?? null);
@@ -151,115 +137,128 @@ async function upsertUserProfile(userId: string, plan: PlanInput, baby: BabyInpu
   const medicalNotes = normalizeText(baby.medicalNotes);
   const birthDate = normalizeDate(baby.birthDate);
 
-  await sql`
-    INSERT INTO users (clerk_id, updated_at)
-    VALUES (${userId}, NOW())
-    ON CONFLICT (clerk_id)
-    DO UPDATE SET updated_at = NOW()
-  `;
+  try {
+    await sql`
+      INSERT INTO users (clerk_id, updated_at)
+      VALUES (${userId}, NOW())
+      ON CONFLICT (clerk_id)
+      DO UPDATE SET updated_at = NOW()
+    `;
+  } catch (error) {
+    rethrowIfProfileTablesMissing(error);
+  }
 
-  await sql`
-    INSERT INTO user_profiles (
-      user_id,
-      due_date,
-      baby_gender,
-      budget_tier,
-      color_palette,
-      material_focus,
-      eco_priority,
-      location,
-      baby_name,
-      baby_nickname,
-      hospital,
-      provider,
-      household_setup,
-      care_network,
-      medical_notes,
-      birth_date,
-      parent_one_name,
-      parent_two_name,
-      updated_at
-    ) VALUES (
-      ${userId},
-      ${dueDate},
-      ${babyGender},
-      ${budgetTier},
-      ${colorPalette},
-      ${materialFocus},
-      ${ecoPriority},
-      ${location},
-      ${babyName},
-      ${babyNickname},
-      ${hospital},
-      ${provider},
-      ${householdSetup},
-      ${careNetwork},
-      ${medicalNotes},
-      ${birthDate},
-      ${parentOneName},
-      ${parentTwoName},
-      NOW()
-    )
-    ON CONFLICT (user_id)
-    DO UPDATE SET
-      due_date = EXCLUDED.due_date,
-      baby_gender = EXCLUDED.baby_gender,
-      budget_tier = EXCLUDED.budget_tier,
-      color_palette = EXCLUDED.color_palette,
-      material_focus = EXCLUDED.material_focus,
-      eco_priority = EXCLUDED.eco_priority,
-      location = EXCLUDED.location,
-      baby_name = EXCLUDED.baby_name,
-      baby_nickname = EXCLUDED.baby_nickname,
-      hospital = EXCLUDED.hospital,
-      provider = EXCLUDED.provider,
-      household_setup = EXCLUDED.household_setup,
-      care_network = EXCLUDED.care_network,
-      medical_notes = EXCLUDED.medical_notes,
-      birth_date = EXCLUDED.birth_date,
-      parent_one_name = EXCLUDED.parent_one_name,
-      parent_two_name = EXCLUDED.parent_two_name,
-      updated_at = NOW()
-  `;
+  try {
+    await sql`
+      INSERT INTO user_profiles (
+        user_id,
+        due_date,
+        baby_gender,
+        budget_tier,
+        color_palette,
+        material_focus,
+        eco_priority,
+        location,
+        baby_name,
+        baby_nickname,
+        hospital,
+        provider,
+        household_setup,
+        care_network,
+        medical_notes,
+        birth_date,
+        parent_one_name,
+        parent_two_name,
+        updated_at
+      ) VALUES (
+        ${userId},
+        ${dueDate},
+        ${babyGender},
+        ${budgetTier},
+        ${colorPalette},
+        ${materialFocus},
+        ${ecoPriority},
+        ${location},
+        ${babyName},
+        ${babyNickname},
+        ${hospital},
+        ${provider},
+        ${householdSetup},
+        ${careNetwork},
+        ${medicalNotes},
+        ${birthDate},
+        ${parentOneName},
+        ${parentTwoName},
+        NOW()
+      )
+      ON CONFLICT (user_id)
+      DO UPDATE SET
+        due_date = EXCLUDED.due_date,
+        baby_gender = EXCLUDED.baby_gender,
+        budget_tier = EXCLUDED.budget_tier,
+        color_palette = EXCLUDED.color_palette,
+        material_focus = EXCLUDED.material_focus,
+        eco_priority = EXCLUDED.eco_priority,
+        location = EXCLUDED.location,
+        baby_name = EXCLUDED.baby_name,
+        baby_nickname = EXCLUDED.baby_nickname,
+        hospital = EXCLUDED.hospital,
+        provider = EXCLUDED.provider,
+        household_setup = EXCLUDED.household_setup,
+        care_network = EXCLUDED.care_network,
+        medical_notes = EXCLUDED.medical_notes,
+        birth_date = EXCLUDED.birth_date,
+        parent_one_name = EXCLUDED.parent_one_name,
+        parent_two_name = EXCLUDED.parent_two_name,
+        updated_at = NOW()
+    `;
+  } catch (error) {
+    rethrowIfProfileTablesMissing(error);
+  }
 
   try {
     await sql`DELETE FROM profile_overviews WHERE user_id = ${userId}`;
   } catch (error) {
-    if (!isMissingProfileOverviewsTable(error)) {
-      throw error;
+    if (isMissingProfileOverviewsTable(error)) {
+      return;
     }
+    rethrowIfProfileTablesMissing(error);
   }
 }
 
 async function fetchProfileRow(userId: string): Promise<ProfileRow | null> {
-  const result = await sql<ProfileRow>`
-    SELECT
-      user_id,
-      due_date,
-      baby_gender,
-      budget_tier,
-      color_palette,
-      material_focus,
-      eco_priority,
-      location,
-      baby_name,
-      baby_nickname,
-      hospital,
-      provider,
-      household_setup,
-      care_network,
-      medical_notes,
-      birth_date,
-      parent_one_name,
-      parent_two_name,
-      created_at,
-      updated_at
-    FROM user_profiles
-    WHERE user_id = ${userId}
-    LIMIT 1
-  `;
+  try {
+    const result = await sql<ProfileRow>`
+      SELECT
+        user_id,
+        due_date,
+        baby_gender,
+        budget_tier,
+        color_palette,
+        material_focus,
+        eco_priority,
+        location,
+        baby_name,
+        baby_nickname,
+        hospital,
+        provider,
+        household_setup,
+        care_network,
+        medical_notes,
+        birth_date,
+        parent_one_name,
+        parent_two_name,
+        created_at,
+        updated_at
+      FROM user_profiles
+      WHERE user_id = ${userId}
+      LIMIT 1
+    `;
 
-  return result.rows[0] ?? null;
+    return result.rows[0] ?? null;
+  } catch (error) {
+    rethrowIfProfileTablesMissing(error);
+  }
 }
 
 async function fetchLegacyProfile(userId: string): Promise<LegacyProfileRow | null> {
@@ -373,8 +372,28 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const parsed = profileSchema.parse(body);
+  try {
+    await upsertUserProfile(userId, parsed.plan ?? {}, parsed.baby ?? {});
+  } catch (error) {
+    if (error instanceof ProfileTablesNotReadyError) {
+      return NextResponse.json(
+        {
+          error: "Profile storage not ready",
+          details: error.message,
+        },
+        { status: 503 },
+      );
+    }
 
-  await upsertUserProfile(userId, parsed.plan ?? {}, parsed.baby ?? {});
+    console.error("Profile upsert error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to save profile",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({ status: "saved" });
 }
@@ -386,35 +405,54 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  await ensureProfileTables();
-
-  const profileRow = await fetchProfileRow(userId);
-  if (profileRow) {
-    return NextResponse.json({ data: buildProfileResponse(profileRow) });
-  }
-
-  const legacyProfile = await fetchLegacyProfile(userId);
-  if (legacyProfile) {
-    const legacyPlan = (legacyProfile.plan ?? {}) as PlanInput;
-    const legacyBaby = (legacyProfile.baby ?? {}) as BabyInput;
-
-    await upsertUserProfile(userId, legacyPlan, legacyBaby);
-
-    const migratedRow = await fetchProfileRow(userId);
-    if (migratedRow) {
-      return NextResponse.json({ data: buildProfileResponse(migratedRow) });
+  try {
+    const profileRow = await fetchProfileRow(userId);
+    if (profileRow) {
+      return NextResponse.json({ data: buildProfileResponse(profileRow) });
     }
 
-    return NextResponse.json({
-      data: {
-        user_id: userId,
-        plan: legacyPlan,
-        baby: legacyBaby,
-        created_at: legacyProfile.created_at,
-        updated_at: legacyProfile.updated_at,
-      },
-    });
-  }
+    const legacyProfile = await fetchLegacyProfile(userId);
+    if (legacyProfile) {
+      const legacyPlan = (legacyProfile.plan ?? {}) as PlanInput;
+      const legacyBaby = (legacyProfile.baby ?? {}) as BabyInput;
 
-  return NextResponse.json({ data: null });
+      await upsertUserProfile(userId, legacyPlan, legacyBaby);
+
+      const migratedRow = await fetchProfileRow(userId);
+      if (migratedRow) {
+        return NextResponse.json({ data: buildProfileResponse(migratedRow) });
+      }
+
+      return NextResponse.json({
+        data: {
+          user_id: userId,
+          plan: legacyPlan,
+          baby: legacyBaby,
+          created_at: legacyProfile.created_at,
+          updated_at: legacyProfile.updated_at,
+        },
+      });
+    }
+
+    return NextResponse.json({ data: null });
+  } catch (error) {
+    if (error instanceof ProfileTablesNotReadyError) {
+      return NextResponse.json(
+        {
+          error: "Profile storage not ready",
+          details: error.message,
+        },
+        { status: 503 },
+      );
+    }
+
+    console.error("Profile fetch error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to fetch profile",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
 }

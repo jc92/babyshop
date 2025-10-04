@@ -7,7 +7,7 @@ Next.js routes live in `src/app` with segments like `admin`, `curated`, `profile
 Pages use the App Router: server components fetch data and hand results to client components. Reuse the `src/lib/*/service.ts` wrappers for `/api/*` calls so responses stay normalized. Keep state in `src/hooks`, copy in `src/lib/copy`, add loading/error UI, and have admin views rely on these services instead of querying Postgres directly.
 
 ## Build, Test & Development Commands
-Run `pnpm install` once, then use `pnpm dev` for the dev server on port 3000. `pnpm build` compiles production assets, `pnpm start` serves them, and `pnpm lint` applies the root ESLint config. Database smoke scripts run with `pnpm exec node scripts/test-*.js`; hydrate `.env.local` before running them.
+Run `pnpm install` once, then use `pnpm dev` for the dev server on port 3000. `pnpm build` compiles production assets, `pnpm start` serves them, and `pnpm lint` applies the root ESLint config. Always keep `pnpm lint`, `pnpm test`, and `pnpm dev` green before pushing. Database smoke scripts run with `pnpm exec node scripts/test-*.js`; hydrate `.env.local` before running them.
 
 ## Coding Style & Naming Conventions
 Use TypeScript functional components with two-space indentation, trailing commas, and single quotes per `eslint-config-next`. Components and hooks use PascalCase and camelCase respectively. Segment folders mirror Next.js routing (e.g., `src/app/api/products/route.ts`). Group Tailwind classes by layout, spacing, then theme.

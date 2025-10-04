@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
 import { auth } from "@clerk/nextjs/server";
 import { mapBudgetFromDb } from "@/lib/profile/budget";
+import { isAdminUser } from "@/lib/auth/admin";
 
 function isMissingUserProfilesTable(error: unknown): boolean {
   return (
@@ -30,6 +31,10 @@ export async function GET() {
   
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAdminUser(userId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -106,6 +111,10 @@ export async function DELETE() {
   
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAdminUser(userId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {

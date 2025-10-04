@@ -5,7 +5,7 @@ import { getOpenAIClient, DEFAULT_AGENT_MODEL } from "@/lib/openaiAgent";
 import { productSchema } from "@/schemas/product";
 import { scrapeProductPage } from "@/lib/webScraper";
 import { ProductDomainService } from '@/lib/products/domainService';
-// Removed unused imports
+import { isAdminUser } from "@/lib/auth/admin";
 
 const requestSchema = z.object({
   sourceUrl: z.string().url(),
@@ -61,6 +61,10 @@ export async function POST(request: Request) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAdminUser(userId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -187,7 +191,22 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message.includes('malformed array literal')) {
       debugLog('error.postgres-array');
     }
-    
+
+    if (
+      error instanceof Error &&
+      (error.message.includes('Scraping blocked for host') ||
+        error.message.includes('Only HTTP(S) URLs') ||
+        error.message.includes('Timed out fetching product page'))
+    ) {
+      return NextResponse.json(
+        {
+          error: "Invalid product URL",
+          details: error.message,
+        },
+        { status: error.message.includes('Timed out') ? 504 : 400 },
+      );
+    }
+
     return NextResponse.json(
       {
         error: "Failed to add product from URL",

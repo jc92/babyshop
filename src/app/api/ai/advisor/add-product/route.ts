@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getOpenAIClient } from "@/lib/openaiAgent";
 import { productSchema } from "@/schemas/product";
 import { ProductDomainService } from "@/lib/products/domainService";
+import { isAdminUser } from "@/lib/auth/admin";
 
 const chatMessageSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
@@ -38,6 +39,10 @@ export async function POST(request: Request) {
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAdminUser(userId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let parsedBody: z.infer<typeof requestSchema>;

@@ -1,5 +1,6 @@
-// Simple script to run database migration
-// You need to be authenticated to run this
+// Legacy helper that triggers the hosted migration endpoints.
+// Prefer running `pnpm dlx tsx scripts/setup-database.ts` against your
+// environment for local development.
 
 const runMigration = async () => {
   try {

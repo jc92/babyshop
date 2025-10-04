@@ -8,7 +8,6 @@ import {
   type PreferenceProfile,
 } from "@/data/preferences";
 import {
-  defaultMilestones,
   type CategoryId,
   type MilestoneId,
   type ProductSummary,
@@ -48,14 +47,15 @@ export function useDashboardData() {
     "sleeping",
     "feeding",
   ]);
-  const fallbackMilestoneId = (defaultMilestones[0]?.id ?? "prenatal") as MilestoneId;
-  const [timelineMilestones, setTimelineMilestones] = useState<Milestone[]>(defaultMilestones);
+  const FALLBACK_MILESTONE_ID: MilestoneId = "prenatal";
+  const [fallbackMilestones, setFallbackMilestones] = useState<Milestone[]>([]);
+  const [timelineMilestones, setTimelineMilestones] = useState<Milestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
   const [products, setProducts] = useState<ProductSummary[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [activeMilestoneId, setActiveMilestoneId] = useState<MilestoneId>(fallbackMilestoneId);
+  const [activeMilestoneId, setActiveMilestoneId] = useState<MilestoneId>(FALLBACK_MILESTONE_ID);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -67,6 +67,36 @@ export function useDashboardData() {
     } finally {
       setProductsLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const module = await import("@/data/defaultMilestones");
+        if (cancelled) {
+          return;
+        }
+        const defaults = module.defaultMilestones ?? [];
+        if (defaults.length > 0) {
+          setFallbackMilestones(defaults);
+          setTimelineMilestones((current) => (current.length > 0 ? current : defaults));
+          setActiveMilestoneId((current) => {
+            if (current !== FALLBACK_MILESTONE_ID) {
+              return current;
+            }
+            return defaults[0]?.id ?? current;
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load fallback milestones", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -237,7 +267,7 @@ export function useDashboardData() {
   const budgetDescription = budgetCopy[profile.budget];
 
   const activeMilestone = useMemo(() => {
-    const source = timelineMilestones.length > 0 ? timelineMilestones : defaultMilestones;
+    const source = timelineMilestones.length > 0 ? timelineMilestones : fallbackMilestones;
     return (
       source.find((milestone) => milestone.id === activeMilestoneId) ??
       source[0]
