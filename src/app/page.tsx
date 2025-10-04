@@ -195,27 +195,39 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              {howItWorksSteps.map((step, index) => (
-                <div
-                  key={step.title}
-                  className="space-y-2 rounded-2xl border border-[var(--baby-neutral-200)] bg-white/95 p-4 text-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                      {step.title}
-                    </p>
-                    {index === 0 ? (
-                      <Image src="/assets/advisor-abstract.svg" alt="Conversation bubble icon" width={52} height={32} />
-                    ) : index === 1 ? (
-                      <Image src="/assets/timeline-abstract.svg" alt="Milestone timeline icon" width={52} height={32} />
-                    ) : (
-                      <Image src="/assets/list-abstract.svg" alt="Curated checklist icon" width={52} height={32} />
-                    )}
+            <div className="flex w-full flex-col gap-4">
+              <div className="overflow-hidden rounded-3xl border border-[var(--baby-neutral-200)] bg-white/95 shadow-sm">
+                <Image
+                  src="/assets/how-it-works-diagram.svg"
+                  alt="Diagram showing how Nestlings flows from profile to planner to catalog"
+                  width={560}
+                  height={200}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {howItWorksSteps.map((step, index) => (
+                  <div
+                    key={step.title}
+                    className="space-y-2 rounded-2xl border border-[var(--baby-neutral-200)] bg-white/95 p-4 text-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+                        {step.title}
+                      </p>
+                      {index === 0 ? (
+                        <Image src="/assets/advisor-abstract.svg" alt="Conversation bubble icon" width={48} height={28} />
+                      ) : index === 1 ? (
+                        <Image src="/assets/timeline-abstract.svg" alt="Milestone timeline icon" width={48} height={28} />
+                      ) : (
+                        <Image src="/assets/list-abstract.svg" alt="Curated checklist icon" width={48} height={28} />
+                      )}
+                    </div>
+                    <p className="text-[var(--dreambaby-text)]">{step.description}</p>
                   </div>
-                  <p className="text-[var(--dreambaby-text)]">{step.description}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </section>

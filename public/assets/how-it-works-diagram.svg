@@ -1,0 +1,49 @@
+<svg width="560" height="200" viewBox="0 0 560 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="560" height="200" rx="32" fill="#F6F9FF" />
+  <defs>
+    <linearGradient id="node-blue" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#CFE3FF" />
+      <stop offset="1" stop-color="#E9F1FF" />
+    </linearGradient>
+    <linearGradient id="node-peach" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#FFDCC7" />
+      <stop offset="1" stop-color="#FFF2E8" />
+    </linearGradient>
+    <linearGradient id="node-mint" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#C9F1E0" />
+      <stop offset="1" stop-color="#E5FFF4" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(52,40)">
+    <rect width="140" height="120" rx="24" fill="url(#node-blue)" />
+    <text x="70" y="46" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="600" font-size="16" fill="#1A2E3B">Profile</text>
+    <text x="70" y="72" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#45637C">Due date</text>
+    <text x="70" y="90" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#45637C">Budget & style</text>
+  </g>
+
+  <g transform="translate(210,40)">
+    <rect width="140" height="120" rx="24" fill="url(#node-peach)" />
+    <text x="70" y="46" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="600" font-size="16" fill="#1A2E3B">Planner</text>
+    <text x="70" y="72" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#6F514A">Milestone windows</text>
+    <text x="70" y="90" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#6F514A">Smart reminders</text>
+  </g>
+
+  <g transform="translate(368,40)">
+    <rect width="140" height="120" rx="24" fill="url(#node-mint)" />
+    <text x="70" y="46" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="600" font-size="16" fill="#1A2E3B">Catalog</text>
+    <text x="70" y="72" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#3F6A55">AI recommendations</text>
+    <text x="70" y="90" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#3F6A55">Caregiver hand-offs</text>
+  </g>
+
+  <path d="M192 100H210" stroke="#C7D9F5" stroke-width="4" stroke-linecap="round" />
+  <path d="M350 100H368" stroke="#FFD5BE" stroke-width="4" stroke-linecap="round" />
+  <circle cx="210" cy="100" r="6" fill="#C7D9F5" />
+  <circle cx="350" cy="100" r="6" fill="#FFD5BE" />
+  <path d="M188 96L196 104" stroke="#C7D9F5" stroke-width="4" stroke-linecap="round" />
+  <path d="M346 96L354 104" stroke="#FFD5BE" stroke-width="4" stroke-linecap="round" />
+
+  <text x="108" y="152" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#527391">Input</text>
+  <text x="268" y="152" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#7C5B4E">Orchestrate</text>
+  <text x="426" y="152" text-anchor="middle" font-family="'Inter', sans-serif" font-size="12" fill="#41755D">Deliver</text>
+</svg>
