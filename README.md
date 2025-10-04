@@ -92,6 +92,7 @@ flowchart TD
 pnpm lint   # ESLint + TypeScript checks
 pnpm build  # Production build (Playwright types required if tests enabled)
 pnpm dev    # Next dev server
+ANALYZE=true pnpm build  # Optional bundle report (requires @next/bundle-analyzer)
 ```
 
 ## Operational Notes

@@ -4,12 +4,23 @@ import dynamic from "next/dynamic";
 import { Navigation } from "@/components/Navigation";
 import { DeferredRender } from "@/components/DeferredRender";
 import {
-  CuratedSection,
   LoadingState,
   SignInPrompt,
 } from "@/components/dashboard/sections";
 import { categories } from "@/data/catalog";
 import { useDashboardData } from "@/hooks/useDashboardData";
+
+const CuratedSection = dynamic(
+  () => import("@/components/dashboard/sections").then((mod) => mod.CuratedSection),
+  {
+    ssr: false,
+    loading: () => (
+      <section className="rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 text-sm text-[var(--dreambaby-muted)] shadow-sm">
+        Loading curated recommendations…
+      </section>
+    ),
+  },
+);
 
 const AiAdvisorChat = dynamic(() => import("@/components/AiAdvisorChat"), {
   ssr: false,

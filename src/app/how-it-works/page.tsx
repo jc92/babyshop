@@ -4,62 +4,62 @@ import { Navigation } from "@/components/Navigation";
 export const metadata = {
   title: "How Nestlings Planner Works",
   description:
-    "See how Nestlings Planner combines your family profile, milestone science, and AI-assisted research to surface trusted baby gear recommendations.",
+    "Learn how Nestlings Planner guides new parents from quick questions to calm, curated plans you can trust.",
 };
 
 const milestones = [
   {
-    title: "1. Learn about your family",
+    title: "1. Tell us about your family",
     description:
-      "We start with a lightweight intake that captures due dates, household setup, budget guardrails, and style preferences. The answers only live in your Nestlings Planner account and never leave our Postgres database.",
+      "Answer a short set of questions—due date, who helps at home, budget comfort, and the vibe you’re going for. It takes two minutes and lives safely in your Nestlings Planner profile only.",
   },
   {
-    title: "2. Map the milestone journey",
+    title: "2. Build your milestone roadmap",
     description:
-      "Next we align your details with our 36-month milestone timeline, pre-populated with developmental prompts, caregiver tasks, and purchase timing windows vetted by pediatric professionals.",
+      "We turn those answers into a month-by-month plan, highlighting what to prep, book, or learn next. Each step is checked with pediatric guidance so reminders arrive right when you need them.",
   },
   {
-    title: "3. Curate product candidates",
+    title: "3. Gather parent-loved picks",
     description:
-      "Our sourcing service pulls structured data from manufacturers, verified retailers, and parent community reviews. We cache scores for quality, safety, eco merits, and price bands so results stay fresh without re-scraping everything.",
+      "Our team reviews trusted shops and real caregiver feedback to shortlist gear that fits your budget, space, and style. Safety notes, eco highlights, and price ranges are kept up to date for you.",
   },
   {
-    title: "4. Rank with responsible AI",
+    title: "4. Personalize with smart sorting",
     description:
-      "We feed your profile plus the milestone context into our recommendation engine. It uses OpenAI models with hard-coded guardrails to prioritize safety certifications, verified reviews, and availability before anything else.",
+      "Nestlings Planner nudges the items that match your preferences to the top—think hypoallergenic fabrics, compact strollers, or under-$200 must-haves—while filtering out anything that doesn’t fit.",
   },
   {
-    title: "5. Explain every suggestion",
+    title: "5. Share the why behind every pick",
     description:
-      "Each recommendation surfaces the score breakdown, key pros, and sourcing notes so you can understand why it appears. Prefer organic fabrics or under-$200 gear? Those filters stay sticky across sessions.",
+      "Each card explains why it’s recommended, the age window it supports, and simple pros to consider. You can pin favorites, swap in alternatives, or save ideas for later with one click.",
   },
   {
-    title: "6. Keep humans in the loop",
+    title: "6. Stay supported the whole way",
     description:
-      "Our team reviews new AI-suggested products before they hit curated bundles. You can always flag an item, request alternatives, or export checklists to share with caregivers.",
+      "Prefer a human gut check? Our curators review new additions, and you can message the Nestlings team, export checklists, or pause suggestions anytime. You stay in charge of the pace.",
   },
 ];
 
 const safeguards = [
   {
-    title: "Transparent data handling",
+    title: "Your details stay private",
     description:
-      "Family details stay in an encrypted Postgres instance hosted on Vercel. We never sell or share data with advertisers, and you can delete your profile anytime from the Family Profile page.",
+      "We protect your family info and never sell it. Update or delete your profile whenever circumstances change—no questions asked.",
   },
   {
-    title: "Human review on new listings",
+    title: "Every product is double-checked",
     description:
-      "AI might propose a candidate, but it does not publish anything without a Nestlings Planner curator verifying safety recalls, price accuracy, and retailer reputation.",
+      "Before something lands in your plan, a Nestlings curator reviews safety recalls, stock status, and retailer reputation so you’re never chasing risky links.",
   },
   {
-    title: "Model guardrails",
+    title: "Friendly guardrails",
     description:
-      "Prompts are structured to block medical advice, unsafe DIY hacks, or unverified seller links. When the AI has low confidence it will simply say so and ask for clarification.",
+      "The Nestlings advisor keeps conversations supportive and practical. It avoids medical advice, unverified hacks, or anything that could put your family at risk.",
   },
   {
-    title: "You stay in control",
+    title: "You call the shots",
     description:
-      "Download your plans, edit preferences whenever life changes, and pause recommendations for a season. Sign in from any device to pick up right where you left off.",
+      "Download checklists, tweak preferences as baby grows, or pause recommendations during busy seasons. Sign back in anytime to pick up exactly where you left off.",
   },
 ];
 
@@ -75,7 +75,7 @@ export default function HowItWorksPage() {
             Built to make baby planning calmer, clearer, and more trustworthy
           </h1>
           <p className="mt-4 max-w-3xl text-lg text-[var(--dreambaby-muted)]">
-            Nestlings Planner blends evidence-based milestone planning, responsible AI, and human curation. Here’s exactly what happens behind the scenes so you know how every recommendation reaches your dashboard.
+            Nestlings Planner pairs gentle guidance with real-parent insight so you always know what to do next. Take a look at how we go from your first answers to a calm, trustworthy plan.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-[var(--dreambaby-muted)]">
             <span className="inline-flex items-center gap-2 rounded-full bg-[var(--baby-primary-100)] px-4 py-2 font-semibold text-[var(--baby-primary-600)]">
@@ -93,7 +93,7 @@ export default function HowItWorksPage() {
         <section className="mt-16">
           <h2 className="text-2xl font-semibold text-[var(--dreambaby-text)]">From profile to curated plan</h2>
           <p className="mt-2 max-w-3xl text-sm text-[var(--dreambaby-muted)]">
-            Every new account runs through the same careful pipeline. It keeps your information scoped to trusted sources and makes it easy to understand why each product appears.
+            We follow these steps for every family so you can relax, knowing the right help is on deck before each milestone arrives.
           </p>
           <div className="mt-8 grid gap-6 md:grid-cols-2">
             {milestones.map((item) => (

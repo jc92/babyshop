@@ -40,6 +40,7 @@ import AiAdvisorChat from "@/components/AiAdvisorChat";
 
 describe("AiAdvisorChat", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     milestoneListMock.mockResolvedValue(defaultMilestones.slice(0, 2));
     useSafeUserMock.mockReturnValue({
       isLoaded: true,
@@ -50,6 +51,7 @@ describe("AiAdvisorChat", () => {
   });
 
   afterEach(() => {
+    window.localStorage.clear();
     vi.clearAllTimers();
     vi.useRealTimers();
     vi.clearAllMocks();

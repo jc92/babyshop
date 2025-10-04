@@ -5,7 +5,6 @@ import { Navigation } from "@/components/Navigation";
 import { DeferredRender } from "@/components/DeferredRender";
 import {
   LoadingState,
-  ProfileSection,
   SignInPrompt,
 } from "@/components/dashboard/sections";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -13,6 +12,18 @@ const AiAdvisorChat = dynamic(() => import("@/components/AiAdvisorChat"), {
   ssr: false,
   loading: () => null,
 });
+
+const ProfileSection = dynamic(
+  () => import("@/components/dashboard/sections").then((mod) => mod.ProfileSection),
+  {
+    ssr: false,
+    loading: () => (
+      <section className="rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 text-sm text-[var(--dreambaby-muted)] shadow-sm">
+        Preparing profile form…
+      </section>
+    ),
+  },
+);
 
 export default function ProfilePage() {
   const {
