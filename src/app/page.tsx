@@ -60,7 +60,7 @@ export default function Home() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white via-[rgba(229,239,255,0.4)] to-[rgba(252,245,233,0.6)]" />
         <div className="absolute -right-32 top-12 -z-10 hidden h-72 w-72 rounded-full bg-[rgba(161,180,192,0.18)] blur-3xl md:block" />
 
-        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-14 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
+        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 pb-14 pt-10 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-start lg:gap-16">
           <div className="space-y-6">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--dreambaby-muted)] shadow-sm">
               {heroCopy.overline}
@@ -84,37 +84,39 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col gap-6">
-            <div className="overflow-hidden rounded-3xl border border-[var(--baby-neutral-200)] bg-white shadow-[0_24px_60px_rgba(111,144,153,0.16)]">
-              <div className="bg-gradient-to-br from-white via-[rgba(244,248,255,0.6)] to-[rgba(255,244,231,0.7)] p-6">
+            <div className="overflow-hidden rounded-3xl border border-[var(--baby-neutral-200)] bg-white/90 shadow-[0_24px_60px_rgba(111,144,153,0.16)]">
+              <div className="relative overflow-hidden rounded-3xl">
+                <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[rgba(207,224,255,0.32)] blur-3xl" />
                 <Image
                   src="/assets/hero-abstract.svg"
                   alt="Soft abstract illustration representing the Nestlings planning experience"
-                  width={540}
-                  height={320}
+                  width={520}
+                  height={300}
                   priority
+                  className="h-full w-full object-cover"
                 />
               </div>
             </div>
 
-            <div className="space-y-4 rounded-3xl border border-[var(--baby-neutral-200)] bg-white/90 p-6 shadow-[0_16px_44px_rgba(111,144,153,0.12)] backdrop-blur">
+            <div className="rounded-3xl border border-[var(--baby-neutral-200)] bg-white/95 p-6 shadow-[0_16px_40px_rgba(111,144,153,0.1)] backdrop-blur">
               <p className="text-sm font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
                 We tackle these headaches
               </p>
-              <ul className="space-y-3 text-sm text-[var(--dreambaby-text)]">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {heroCopy.proofPoints.map((point) => (
-                  <li key={point.title} className="flex gap-3">
-                    <span className="mt-1 inline-flex items-center justify-center text-lg text-[var(--baby-primary-500)]" aria-hidden>
+                  <div key={point.title} className="flex items-start gap-3 rounded-2xl border border-[rgba(111,144,153,0.14)] bg-white/90 px-4 py-3">
+                    <span className="mt-1 inline-flex size-7 items-center justify-center rounded-full bg-[rgba(111,144,153,0.12)] text-base text-[var(--baby-primary-500)]" aria-hidden>
                       ✓
                     </span>
                     <div className="space-y-1">
-                      <p className="font-semibold leading-snug">{point.title}</p>
+                      <p className="font-semibold leading-snug text-[var(--dreambaby-text)]">{point.title}</p>
                       {point.description && (
-                        <p className="text-xs text-[var(--dreambaby-muted)] leading-snug">{point.description}</p>
+                        <p className="text-xs leading-relaxed text-[var(--dreambaby-muted)]">{point.description}</p>
                       )}
                     </div>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           </div>
         </div>

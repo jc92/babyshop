@@ -74,11 +74,11 @@ export function useDashboardData() {
 
     (async () => {
       try {
-        const module = await import("@/data/defaultMilestones");
+        const milestonesModule = await import("@/data/defaultMilestones");
         if (cancelled) {
           return;
         }
-        const defaults = module.defaultMilestones ?? [];
+        const defaults = milestonesModule.defaultMilestones ?? [];
         if (defaults.length > 0) {
           setFallbackMilestones(defaults);
           setTimelineMilestones((current) => (current.length > 0 ? current : defaults));

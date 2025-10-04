@@ -45,8 +45,10 @@ vi.mock("@/lib/clerkClient", () => ({
   useSafeUser: navigationState.useSafeUser,
 }));
 
-vi.mock("@/components/navigation/AuthControls", () => {
-  const React = require("react");
+vi.mock("@/components/navigation/AuthControls", async () => {
+  const ReactModule = await vi.importActual<typeof import("react")>("react");
+  const { useEffect } = ReactModule;
+
   const AuthControls = ({
     onNavigate,
     onAuthStateChange,
@@ -56,7 +58,7 @@ vi.mock("@/components/navigation/AuthControls", () => {
   }) => {
     const snapshot = navigationState.authSnapshot;
 
-    React.useEffect(() => {
+    useEffect(() => {
       onAuthStateChange?.(snapshot);
     }, [snapshot, onAuthStateChange]);
 

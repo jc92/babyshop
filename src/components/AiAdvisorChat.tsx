@@ -64,10 +64,6 @@ type PersistedChatState = {
   messages: ChatBubble[];
 };
 
-function mergeClassNames(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
 function formatPrice(priceCents: number | null | undefined) {
   if (priceCents === null || priceCents === undefined) {
     return null;
@@ -117,12 +113,12 @@ export default function AiAdvisorChat() {
 
     (async () => {
       try {
-        const module = await import("@/data/defaultMilestones");
+        const milestonesModule = await import("@/data/defaultMilestones");
         if (!isMounted) {
           return;
         }
-        if (module?.defaultMilestones) {
-          setAvailableMilestones(module.defaultMilestones);
+        if (milestonesModule?.defaultMilestones) {
+          setAvailableMilestones(milestonesModule.defaultMilestones);
         }
       } catch (error) {
         console.error("Failed to load fallback milestones", error);

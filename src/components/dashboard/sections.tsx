@@ -26,6 +26,7 @@ type CurrentMilestoneCardProps = {
   nextMilestone?: Milestone | null;
   babyLabel?: string | null;
   dueDateLabel?: string | null;
+  disableSticky?: boolean;
 };
 
 function CurrentMilestoneCard({
@@ -38,14 +39,49 @@ function CurrentMilestoneCard({
   nextMilestone,
   babyLabel,
   dueDateLabel,
+  disableSticky = false,
 }: CurrentMilestoneCardProps) {
   const queuedCount = products.length;
   const hasPrev = Boolean(previousMilestone && onSelectMilestone);
   const hasNext = Boolean(nextMilestone && onSelectMilestone);
-  const focusAreas = Array.from(new Set(products.map((product) => product.category))).slice(0, 3);
+  const topCategories = Array.from(new Set(products.map((product) => product.category))).slice(0, 3);
+  const containerBase = "flex flex-col gap-5 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm";
+  const containerClass = disableSticky ? containerBase : `${containerBase} lg:sticky lg:top-6`;
+
+  const highlightTiles = [
+    {
+      label: "Baby focus",
+      icon: "👶",
+      items: milestone.babyFocus,
+    },
+    {
+      label: "Caregiver focus",
+      icon: "🤝",
+      items: milestone.caregiverFocus,
+    },
+    {
+      label: "Home setup",
+      icon: "🏠",
+      items: milestone.environmentFocus,
+    },
+    {
+      label: "Health",
+      icon: "🩺",
+      items: milestone.healthChecklist,
+    },
+    {
+      label: "Planning",
+      icon: "🗒️",
+      items: milestone.planningTips,
+    },
+  ]
+    .map((section) => section.items?.[0] ? { ...section, summary: section.items[0] } : null)
+    .filter(
+      (section): section is { label: string; icon: string; items?: string[]; summary: string } => Boolean(section),
+    );
 
   return (
-    <section className="flex flex-col gap-5 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm lg:sticky lg:top-6">
+    <section className={containerClass}>
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
           Current milestone
@@ -69,27 +105,48 @@ function CurrentMilestoneCard({
           </p>
         </div>
         <div className="rounded-xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">Focus areas</p>
-          {focusAreas.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {focusAreas.map((area) => (
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">Top categories</p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--dreambaby-muted)]">
+            {topCategories.length > 0 ? (
+              topCategories.map((area) => (
                 <span
                   key={area}
-                  className="rounded-full border border-[var(--baby-neutral-300)] bg-white px-3 py-1 text-xs font-semibold text-[var(--dreambaby-text)]"
+                  className="inline-flex items-center gap-1 rounded-full border border-[var(--baby-neutral-300)] bg-white px-3 py-1 text-[var(--dreambaby-text)]"
                 >
+                  <span aria-hidden>•</span>
                   {area}
                 </span>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-1 text-[var(--dreambaby-text)]">Curated categories will appear as you add items from picks.</p>
-          )}
+              ))
+            ) : (
+              <span>No curated categories yet</span>
+            )}
+          </div>
         </div>
         <div className="rounded-xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">Plan summary</p>
           <p className="text-[var(--dreambaby-text)]">{budgetLabel}</p>
           <p className="text-xs leading-relaxed">{budgetDescription}</p>
         </div>
+        {highlightTiles.length > 0 && (
+          <div className="grid gap-3 rounded-xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+              Key prep calls
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {highlightTiles.map((section) => (
+                <div key={section.label} className="flex items-start gap-3 rounded-2xl border border-white bg-white px-3 py-2 shadow-sm">
+                  <span aria-hidden className="text-lg">{section.icon}</span>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+                      {section.label}
+                    </p>
+                    <p className="text-xs leading-relaxed text-[var(--dreambaby-muted)]">{section.summary}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {onSelectMilestone && (
@@ -98,7 +155,7 @@ function CurrentMilestoneCard({
             type="button"
             onClick={() => previousMilestone && onSelectMilestone(previousMilestone.id)}
             disabled={!hasPrev}
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--baby-neutral-300)] px-3 py-1 transition hover:border-[var(--baby-primary-200)] hover:text-[var(--dreambaby-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--baby-neutral-300)] bg-white px-3 py-1 transition hover:border-[var(--baby-primary-200)] hover:text-[var(--dreambaby-text)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             ← {previousMilestone ? previousMilestone.label : "Start"}
           </button>
@@ -106,7 +163,7 @@ function CurrentMilestoneCard({
             type="button"
             onClick={() => nextMilestone && onSelectMilestone(nextMilestone.id)}
             disabled={!hasNext}
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--baby-neutral-300)] px-3 py-1 transition hover:border-[var(--baby-primary-200)] hover:text-[var(--dreambaby-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--baby-neutral-300)] bg-white px-3 py-1 transition hover:border-[var(--baby-primary-200)] hover:text-[var(--dreambaby-text)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {nextMilestone ? nextMilestone.label : "Complete"} →
           </button>
@@ -219,7 +276,49 @@ export function MilestoneSummarySection({
           onSelectMilestone={onSelectMilestone}
           babyLabel={babyDisplayName}
           dueDateLabel={dueDateLabel}
+          disableSticky
         />
+
+        {hasFocusContent && (
+          <div className="space-y-4 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm">
+            <header className="space-y-2">
+              <h3 className="text-lg font-semibold text-[var(--dreambaby-text)]">What to expect this stage</h3>
+              <p className="text-sm text-[var(--dreambaby-muted)]">
+                Highlights pulled directly from the milestone record so your prep work stays on track.
+              </p>
+            </header>
+
+            {milestone.summary ? (
+              <p className="rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-4 text-sm leading-relaxed text-[var(--dreambaby-text)]">
+                {milestone.summary}
+              </p>
+            ) : null}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {focusSections.map((section) => {
+                if (!section.items || section.items.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div key={section.title} className="space-y-2 rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+                      {section.title}
+                    </h4>
+                    <ul className="space-y-2 text-sm text-[var(--dreambaby-text)]">
+                      {section.items.map((item) => (
+                        <li key={item} className="flex gap-2">
+                          <span className="mt-1 inline-block size-1.5 flex-shrink-0 rounded-full bg-[var(--baby-primary-300)]" />
+                          <span className="leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-end">
           <button
