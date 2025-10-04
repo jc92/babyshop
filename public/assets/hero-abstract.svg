@@ -1,0 +1,77 @@
+<svg width="360" height="260" viewBox="0 0 360 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hero-bg" x1="40" y1="24" x2="320" y2="236" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5F9FF" />
+      <stop offset="1" stop-color="#FFF6EB" />
+    </linearGradient>
+    <linearGradient id="hero-ring" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#A9C8FF" />
+      <stop offset="1" stop-color="#F8C7DA" />
+    </linearGradient>
+    <linearGradient id="hero-blob" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#FFE5B4" />
+      <stop offset="1" stop-color="#CFE8FF" />
+    </linearGradient>
+    <linearGradient id="hero-line" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#8FB3D8" />
+      <stop offset="1" stop-color="#F0C7C7" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="360" height="260" rx="36" fill="url(#hero-bg)" />
+
+  <g opacity="0.45">
+    <circle cx="96" cy="88" r="54" fill="#E7F0FF" />
+    <circle cx="252" cy="78" r="62" fill="#FFF2E0" />
+    <circle cx="292" cy="176" r="40" fill="#F4E8FF" />
+  </g>
+
+  <g opacity="0.9">
+    <path
+      d="M80 186C122 150 180 140 236 156C260 162 280 172 296 188"
+      stroke="url(#hero-line)"
+      stroke-width="22"
+      stroke-linecap="round"
+    />
+    <path
+      d="M94 176C130 150 180 146 220 158"
+      stroke="#FFFFFF"
+      stroke-width="10"
+      stroke-linecap="round"
+      opacity="0.8"
+    />
+    <circle cx="164" cy="116" r="46" fill="#FFFFFF" stroke="#D8E6FF" stroke-width="6" />
+    <circle cx="144" cy="108" r="6" fill="#4B6575" opacity="0.85" />
+    <circle cx="184" cy="108" r="6" fill="#4B6575" opacity="0.85" />
+    <path d="M144 124C150 134 158 140 166 140C174 140 182 134 186 124" stroke="#8FB3D8" stroke-width="8" stroke-linecap="round" />
+  </g>
+
+  <g opacity="0.28">
+    <circle cx="112" cy="200" r="48" stroke="url(#hero-ring)" stroke-width="18" />
+    <circle cx="276" cy="108" r="58" stroke="url(#hero-ring)" stroke-width="14" />
+  </g>
+
+  <g opacity="0.4">
+    <path
+      d="M68 64C88 46 116 38 142 44C158 48 174 60 184 74"
+      stroke="url(#hero-blob)"
+      stroke-width="24"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <g opacity="0.32">
+    <path
+      d="M224 206C244 198 264 198 280 206"
+      stroke="#F3CFC7"
+      stroke-width="18"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <g opacity="0.6">
+    <path d="M80 70L92 80" stroke="#D3E1FF" stroke-width="6" stroke-linecap="round" />
+    <path d="M264 44L280 56" stroke="#FAD6E2" stroke-width="6" stroke-linecap="round" />
+    <path d="M276 200L288 212" stroke="#D3E1FF" stroke-width="6" stroke-linecap="round" />
+  </g>
+</svg>

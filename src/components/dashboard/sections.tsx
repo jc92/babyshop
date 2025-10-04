@@ -116,7 +116,7 @@ function CurrentMilestoneCard({
   );
 }
 type MilestoneSummarySectionProps = {
-  milestone: Milestone;
+  milestone?: Milestone | null;
   products: ProductSummary[];
   productsLoading: boolean;
   formatCurrency: (value?: number | null) => string;
@@ -165,6 +165,33 @@ export function MilestoneSummarySection({
     : formattedBirthDate
       ? `Born ${formattedBirthDate}`
       : formattedBabyDueDate;
+
+  if (!milestone) {
+    return (
+      <section className="space-y-6">
+        <div className="rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+            Preparing your plan
+          </p>
+          <p className="mt-2 text-base font-medium text-[var(--dreambaby-text)]">
+            We&apos;re syncing milestone guidance.
+          </p>
+          <p className="mt-2 text-sm text-[var(--dreambaby-muted)]">
+            Once everything loads you&apos;ll see recommended focus areas, checklists, and curated products for each stage.
+          </p>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onNavigateToCurated}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--baby-primary-200)] bg-white px-4 py-2 text-sm font-semibold text-[var(--baby-primary-500)] shadow-sm transition hover:border-[var(--baby-primary-300)] hover:text-[var(--baby-primary-600)]"
+          >
+            Explore curated picks →
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   const focusSections = [
     { title: "Baby focus", items: milestone.babyFocus },

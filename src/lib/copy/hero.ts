@@ -1,8 +1,8 @@
 export const heroCopy = {
-  overline: "Smart baby registry planning",
-  title: "AI-crafted baby registry, tailored for every milestone",
+  overline: "Plan with less mental load",
+  title: "Know what to buy next, without the scramble",
   subtitle:
-    "You answer a few questions. We map every milestone, compare the must-have gear, and keep your baby registry perfectly timed—no guesswork, no overwhelm.",
+    "Nestlings surfaces the next must-do, curates gear that fits your budget, and keeps every milestone on track in minutes.",
   primaryCta: {
     label: "Start onboarding",
     href: "/onboarding",
@@ -13,16 +13,16 @@ export const heroCopy = {
   },
   proofPoints: [
     {
-      title: "Parents stay in control",
-      description: "Sync your family profile, budgets, and preferences—the AI adapts as your plans change.",
+      title: "Timeline adjusts with your due date",
+      description: "Stay ahead with auto-shifting reminders for every milestone.",
     },
     {
-      title: "Every milestone anticipated",
-      description: "Get reminded of what to add, swap, or skip before each developmental stage arrives.",
+      title: "Shortlists gear so you close the tabs",
+      description: "See vetted picks that match your budget, style, and values.",
     },
     {
-      title: "Curated with confidence",
-      description: "We combine expert reviews with your personal data to build a registry that fits your life.",
+      title: "Stops last-minute registry scrambles",
+      description: "Get quick nudges before supplies run out or stages change.",
     },
   ],
 };

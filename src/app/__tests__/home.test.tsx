@@ -7,13 +7,17 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 const heroCopyMock = {
-  overline: "Built for new parents",
-  title: "Plan every milestone with calm",
-  subtitle: "Nestlings Planner keeps you one step ahead with gentle reminders and curated picks.",
+  overline: "Plan with less mental load",
+  title: "Know what to buy next, without the scramble",
+  subtitle:
+    "Nestlings surfaces the next must-do, curates gear that fits your budget, and keeps every milestone on track in minutes.",
   primaryCta: { label: "Start onboarding", href: "/onboarding" },
   secondaryCta: { label: "See how it works", href: "/how-it-works" },
   proofPoints: [
-    { title: "Always ready", description: "Milestone reminders arrive right on time." },
+    {
+      title: "Timeline adjusts with your due date",
+      description: "Stay ahead with auto-shifting reminders for every milestone.",
+    },
   ],
 };
 
@@ -68,7 +72,7 @@ describe("Home (marketing page)", () => {
     render(<Home />);
 
     expect(screen.getByTestId("navigation")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Plan every milestone with calm/i })).toBeVisible();
+    expect(screen.getByRole("heading", { name: /Know what to buy next, without the scramble/i })).toBeVisible();
     expect(screen.getByRole("link", { name: /Start onboarding/i })).toHaveAttribute("href", "/onboarding");
     expect(screen.getByRole("link", { name: /See how it works/i })).toHaveAttribute("href", "/how-it-works");
   });

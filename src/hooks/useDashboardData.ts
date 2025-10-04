@@ -272,7 +272,7 @@ export function useDashboardData() {
       source.find((milestone) => milestone.id === activeMilestoneId) ??
       source[0]
     );
-  }, [activeMilestoneId, timelineMilestones]);
+  }, [activeMilestoneId, timelineMilestones, fallbackMilestones]);
 
   const activeMilestoneProducts = useMemo(() => {
     if (!activeMilestone || productsLoading) {

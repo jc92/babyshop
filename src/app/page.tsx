@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
 import { products } from "@/data/catalog";
@@ -60,14 +61,14 @@ export default function Home() {
         <div className="absolute -right-32 top-12 -z-10 hidden h-72 w-72 rounded-full bg-[rgba(161,180,192,0.18)] blur-3xl md:block" />
 
         <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-14 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
-          <div className="space-y-7">
+          <div className="space-y-6">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--dreambaby-muted)] shadow-sm">
               {heroCopy.overline}
             </span>
             <h1 className="text-4xl font-semibold tracking-tight text-[var(--dreambaby-text)] sm:text-5xl">
               {heroCopy.title}
             </h1>
-            <p className="text-lg leading-relaxed text-[var(--dreambaby-muted)]">
+            <p className="max-w-xl text-lg leading-relaxed text-[var(--dreambaby-muted)]">
               {heroCopy.subtitle}
             </p>
             <div className="flex flex-wrap gap-3">
@@ -82,19 +83,39 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="space-y-4 rounded-3xl border border-[var(--baby-neutral-200)] bg-white/90 p-6 shadow-[0_24px_60px_rgba(111,144,153,0.12)] backdrop-blur">
-            <p className="text-sm font-semibold text-[var(--dreambaby-text)]">How it helps</p>
-            <ul className="space-y-4 text-sm text-[var(--dreambaby-text)]">
-              {heroCopy.proofPoints.map((point) => (
-                <li key={point.title} className="flex gap-3">
-                  <span className="mt-[6px] inline-flex size-2 rounded-full bg-[var(--baby-primary-500)]" aria-hidden />
-                  <div className="space-y-1">
-                    <p className="font-semibold">{point.title}</p>
-                    <p className="text-[var(--dreambaby-muted)]">{point.description}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          <div className="flex flex-col gap-6">
+            <div className="overflow-hidden rounded-3xl border border-[var(--baby-neutral-200)] bg-white shadow-[0_24px_60px_rgba(111,144,153,0.16)]">
+              <div className="bg-gradient-to-br from-white via-[rgba(244,248,255,0.6)] to-[rgba(255,244,231,0.7)] p-6">
+                <Image
+                  src="/assets/hero-abstract.svg"
+                  alt="Soft abstract illustration representing the Nestlings planning experience"
+                  width={540}
+                  height={320}
+                  priority
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-3xl border border-[var(--baby-neutral-200)] bg-white/90 p-6 shadow-[0_16px_44px_rgba(111,144,153,0.12)] backdrop-blur">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+                We tackle these headaches
+              </p>
+              <ul className="space-y-3 text-sm text-[var(--dreambaby-text)]">
+                {heroCopy.proofPoints.map((point) => (
+                  <li key={point.title} className="flex gap-3">
+                    <span className="mt-1 inline-flex items-center justify-center text-lg text-[var(--baby-primary-500)]" aria-hidden>
+                      ✓
+                    </span>
+                    <div className="space-y-1">
+                      <p className="font-semibold leading-snug">{point.title}</p>
+                      {point.description && (
+                        <p className="text-xs text-[var(--dreambaby-muted)] leading-snug">{point.description}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </header>
@@ -175,14 +196,23 @@ export default function Home() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              {howItWorksSteps.map((step) => (
+              {howItWorksSteps.map((step, index) => (
                 <div
                   key={step.title}
-                  className="space-y-2 rounded-2xl border border-[var(--baby-neutral-200)] bg-white/90 p-4 text-sm"
+                  className="space-y-2 rounded-2xl border border-[var(--baby-neutral-200)] bg-white/95 p-4 text-sm"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                    {step.title}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+                      {step.title}
+                    </p>
+                    {index === 0 ? (
+                      <Image src="/assets/advisor-abstract.svg" alt="Conversation bubble icon" width={52} height={32} />
+                    ) : index === 1 ? (
+                      <Image src="/assets/timeline-abstract.svg" alt="Milestone timeline icon" width={52} height={32} />
+                    ) : (
+                      <Image src="/assets/list-abstract.svg" alt="Curated checklist icon" width={52} height={32} />
+                    )}
+                  </div>
                   <p className="text-[var(--dreambaby-text)]">{step.description}</p>
                 </div>
               ))}

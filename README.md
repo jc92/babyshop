@@ -54,13 +54,13 @@ flowchart TD
 ## Why This Stack
 | Concern | Choice | Why it matters |
 | --- | --- | --- |
-| UI & routing | **Next.js 15 / React 19** | App Router lets us stream server components for static sections while keeping island interactivity for dashboards and chat. |
-| Language | **TypeScript** | Shared types flow from API responses to UI forms so migrations and forms stay aligned. |
-| Styling | **Tailwind CSS v4** | Token-based styling compiled by PostCSS 8 keeps the runtime lean and consistent. |
-| AuthN/AuthZ | **Clerk** | Handles sessions + OAuth so we can spend time on milestone logic instead. |
-| Database | **Vercel Postgres** | Managed SQL with array columns for milestone tags and straightforward serverless access (`@vercel/postgres`). |
-| AI layer | **OpenAI** | Chat + extraction tasks fuel the advisor dialog and product rationale.
-| Observability | **Vercel Analytics** | Baseline Web Vitals telemetry without wiring custom collectors.
+| UI & routing | **Next.js 15 / React 19** | App Router gives us streaming server components for static surfaces (e.g., home, how-it-works) while leaving room for rich client islands (dashboards, chat). We lean on React 19 transitions/suspense for smooth loading states. *Trade-off:* tight coupling to Vercel/Next release cadence; alternative: Remix or SvelteKit if you prefer filesystem-agnostic routing. |
+| Language | **TypeScript** | End-to-end types cover migrations, API handlers, and UI contracts so schema changes surface immediately. *Trade-off:* TS adds build overhead; alternative: stay in modern JS with JSDoc or SWC type-checking. |
+| Styling | **Tailwind CSS v4** | Utility classes + design tokens keep the bundle small and make it easy to ship responsive layouts that hold up on mobile and desktop out of the box. Tailwind v4’s PostCSS pipeline also speeds up rebuilds. *Trade-off:* class-heavy markup; alternative: CSS Modules or vanilla-extract if your team prefers component-scoped styles. |
+| AuthN/AuthZ | **Clerk** | Provides hosted sessions, OAuth, and user management out of the box so we avoid hand-rolling JWT flows. *Trade-off:* vendor lock-in + per-seat cost; alternatives: Auth0, Supabase Auth, or NextAuth if you want full self-hosting. |
+| Database | **Vercel Postgres** | Managed Postgres with array + JSONB support fits milestone/product data well and integrates with the Vercel runtime. *Trade-off:* limited extensions and connection pooling constraints; alternatives: Neon, PlanetScale (MySQL), or Supabase (Postgres + auth/storage). |
+| AI layer | **OpenAI** | GPT-5 endpoints cover free-form advisor chat, structured extraction, and catalog reasoning with a single provider. *Trade-off:* usage cost and rate limits; alternatives: Anthropic Claude for long context, or self-hosted open models if you need full control. |
+| Observability | **Vercel Analytics** | Lightweight Web Vitals out of the box while we bootstrap; we can layer in alternative telemetry later. *Trade-off:* high-level metrics only; alternatives: LogRocket, Highlight, or a full Datadog setup once deeper tracing is required. |
 
 ## Repository Tour
 | Path | Role |

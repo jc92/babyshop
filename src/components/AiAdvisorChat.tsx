@@ -55,7 +55,7 @@ const advisorPrompts = [
   "Getting baby's sleep space ready? Let's make a plan.",
 ] as const;
 
-const CHAT_STORAGE_KEY = "nestlings:advisor-chat";
+const CHAT_STORAGE_NAMESPACE = "nestlings:advisor-chat";
 
 type PersistedChatState = {
   isOpen: boolean;
@@ -75,8 +75,15 @@ function formatPrice(priceCents: number | null | undefined) {
   return `$${(priceCents / 100).toFixed(2)}`;
 }
 
+function getChatStorageKey(userId: string | null | undefined, isSignedIn: boolean): string {
+  if (isSignedIn && userId) {
+    return `${CHAT_STORAGE_NAMESPACE}:user:${userId}`;
+  }
+  return `${CHAT_STORAGE_NAMESPACE}:guest`;
+}
+
 export default function AiAdvisorChat() {
-  const { isLoaded, isSignedIn } = useSafeUser();
+  const { isLoaded, isSignedIn, user } = useSafeUser();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<ChatBubble[]>([]);
@@ -100,6 +107,10 @@ export default function AiAdvisorChat() {
     isPaused: isOpen,
   });
   const storageHydratedRef = useRef(false);
+  const chatStorageKey = useMemo(
+    () => getChatStorageKey(user?.id ?? null, Boolean(isSignedIn)),
+    [isSignedIn, user?.id],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -124,48 +135,50 @@ export default function AiAdvisorChat() {
   }, []);
 
   useEffect(() => {
-    if (storageHydratedRef.current) {
+    if (typeof window === "undefined") {
+      storageHydratedRef.current = true;
       return;
     }
 
-    if (typeof window === "undefined") {
-      return;
-    }
+    storageHydratedRef.current = false;
+
+    const resetStateToDefaults = () => {
+      setIsOpen(false);
+      setInputValue("");
+      setMessages([]);
+      setMilestoneId(FALLBACK_MILESTONE_ID);
+    };
 
     try {
-      const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
+      const raw = window.localStorage.getItem(chatStorageKey);
       if (!raw) {
+        resetStateToDefaults();
         storageHydratedRef.current = true;
         return;
       }
 
       const parsed = JSON.parse(raw) as Partial<PersistedChatState> | null;
       if (!parsed || typeof parsed !== "object") {
+        resetStateToDefaults();
         storageHydratedRef.current = true;
         return;
       }
 
-      if (typeof parsed.isOpen === "boolean") {
-        setIsOpen(parsed.isOpen);
-      }
-
-      if (typeof parsed.inputValue === "string") {
-        setInputValue(parsed.inputValue);
-      }
-
-      if (Array.isArray(parsed.messages)) {
-        setMessages(parsed.messages as ChatBubble[]);
-      }
-
+      setIsOpen(Boolean(parsed.isOpen));
+      setInputValue(typeof parsed.inputValue === "string" ? parsed.inputValue : "");
+      setMessages(Array.isArray(parsed.messages) ? (parsed.messages as ChatBubble[]) : []);
       if (parsed.milestoneId) {
         setMilestoneId(parsed.milestoneId as MilestoneId);
+      } else {
+        setMilestoneId(FALLBACK_MILESTONE_ID);
       }
     } catch (error) {
       console.error("Failed to read advisor chat state", error);
+      resetStateToDefaults();
     } finally {
       storageHydratedRef.current = true;
     }
-  }, []);
+  }, [chatStorageKey, FALLBACK_MILESTONE_ID]);
 
   useEffect(() => {
     if (!storageHydratedRef.current) {
@@ -184,11 +197,11 @@ export default function AiAdvisorChat() {
     };
 
     try {
-      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
+      window.localStorage.setItem(chatStorageKey, JSON.stringify(payload));
     } catch (error) {
       console.error("Failed to persist advisor chat state", error);
     }
-  }, [isOpen, inputValue, messages, milestoneId]);
+  }, [isOpen, inputValue, messages, milestoneId, chatStorageKey]);
 
   useEffect(() => {
     let cancelled = false;
