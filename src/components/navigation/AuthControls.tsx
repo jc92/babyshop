@@ -19,17 +19,19 @@ type AuthControlsProps = {
 
 export function AuthControls({ onNavigate, onAuthStateChange, variant = "desktop" }: AuthControlsProps) {
   const { isLoaded, isSignedIn, user } = useSafeUser();
+  const loaded = Boolean(isLoaded);
+  const signedIn = Boolean(isSignedIn && loaded);
   const firstName = user?.firstName ?? null;
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
 
   useEffect(() => {
     onAuthStateChange?.({
-      isLoaded,
-      isSignedIn,
+      isLoaded: loaded,
+      isSignedIn: signedIn,
       firstName,
       email,
     });
-  }, [email, firstName, isLoaded, isSignedIn, onAuthStateChange]);
+  }, [email, firstName, loaded, signedIn, onAuthStateChange]);
 
   if (!clerkEnabled) {
     if (variant === "desktop") {
@@ -56,7 +58,7 @@ export function AuthControls({ onNavigate, onAuthStateChange, variant = "desktop
   if (variant === "mobile") {
     return (
       <div className="mt-4 space-y-5">
-        {!isSignedIn && (
+        {!signedIn && (
           <button
             type="button"
             className="w-full rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)]"
@@ -66,8 +68,8 @@ export function AuthControls({ onNavigate, onAuthStateChange, variant = "desktop
           </button>
         )}
 
-        {isSignedIn ? (
-          isLoaded ? (
+        {signedIn ? (
+          loaded ? (
             <div className="flex items-center justify-between rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
@@ -89,7 +91,7 @@ export function AuthControls({ onNavigate, onAuthStateChange, variant = "desktop
           ) : (
             <p className="text-xs text-[var(--dreambaby-muted)]">Preparing sign-in…</p>
           )
-        ) : isLoaded ? (
+        ) : loaded ? (
           <SignInButton mode="modal">
             <button className="w-full rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)]">
               Sign in / create account
@@ -104,7 +106,7 @@ export function AuthControls({ onNavigate, onAuthStateChange, variant = "desktop
 
   return (
     <div className="flex items-center gap-3">
-      {!isSignedIn && (
+      {!signedIn && (
         <button
           type="button"
           className="hidden rounded-full border border-[var(--baby-primary-200)] bg-white px-4 py-2 text-sm font-semibold text-[var(--baby-primary-600)] shadow-sm transition hover:border-[var(--baby-primary-300)] hover:bg-[var(--baby-primary-50)] md:block"
@@ -114,32 +116,23 @@ export function AuthControls({ onNavigate, onAuthStateChange, variant = "desktop
         </button>
       )}
 
-      {isSignedIn ? (
-        isLoaded ? (
-          <>
-            <button
-              type="button"
-              className="hidden rounded-full bg-[var(--baby-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--baby-primary-600)] md:block"
-              onClick={() => onNavigate("/profile")}
-            >
-              Manage profile
-            </button>
-            <div className="flex items-center gap-2">
-              <span className="hidden text-sm font-medium text-[var(--dreambaby-muted)] md:inline">
-                {firstName ? `Hi, ${firstName}` : "Account"}
-              </span>
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-9 h-9 border border-[var(--baby-neutral-300)]",
-                  },
-                }}
-              />
-            </div>
-          </>
+      {signedIn ? (
+        loaded ? (
+          <div className="flex items-center gap-2">
+            <span className="hidden text-sm font-medium text-[var(--dreambaby-muted)] md:inline">
+              {firstName ? `Hi, ${firstName}` : "Account"}
+            </span>
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: "w-9 h-9 border border-[var(--baby-neutral-300)]",
+                },
+              }}
+            />
+          </div>
         ) : null
-      ) : isLoaded ? (
+      ) : loaded ? (
         <SignInButton mode="modal">
           <button
             type="button"

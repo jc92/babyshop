@@ -80,7 +80,8 @@ flowchart TD
    - `POSTGRES_URL`
    - `OPENAI_API_KEY` (and optional `OPENAI_PROJECT`)
    - `ADMIN_CLERK_IDS` (comma-separated Clerk user IDs with admin access)
-   - Optional hardening knobs: `SCRAPE_ALLOWED_HOSTS`, `SCRAPE_TIMEOUT_MS`
+   - Optional hardening knobs: `SCRAPE_ALLOWED_HOSTS` (defaults to `*` for allow-all), `SCRAPE_TIMEOUT_MS`, `SCRAPE_CACHE_TTL_MS`, `SCRAPE_ROBOTS_CACHE_TTL_MS`, `SCRAPE_USER_AGENTS`
+   - AI knobs: `PRODUCT_IMPORT_ENABLE_WEB_SEARCH` (default `true`), `OPENAI_RESPONSES_MODEL` (used for the standalone search summary call), `OPENAI_SEARCH_MODEL` (fallback chat model for extraction), `OPENAI_WEB_SEARCH_ALLOWED_DOMAINS`
 4. Start the dev server: `pnpm dev`
 5. In another shell prepare the database (requires access to your Postgres instance):
    ```bash
@@ -98,7 +99,7 @@ ANALYZE=true pnpm build  # Optional bundle report (requires @next/bundle-analyze
 ```
 
 ## Operational Notes
-- Whenever the schema changes, rerun `pnpm dlx tsx scripts/setup-database.ts` so Vercel Postgres picks up new columns and seeded reference data.
+- Whenever the schema changes, rerun `pnpm dlx tsx scripts/setup-database.ts` so Vercel Postgres picks up new columns (including the `scrape_allowed_hosts` config table) and seeded reference data.
 - AI endpoints call OpenAI; throttle or stub when running automated tests.
 - The advisor chat and dashboard import Clerk components dynamically so unauthenticated experiences still load quickly.
 

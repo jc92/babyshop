@@ -16,7 +16,7 @@ import {
 import { ProductService } from "@/lib/products/service";
 import { rankProducts } from "@/lib/recommendation";
 import { MilestoneService } from "@/lib/milestones/service";
-import { toIsoDateString } from "@/lib/dateCalculations";
+import { toIsoDateString, toDate } from "@/lib/dateCalculations";
 
 export const defaultBabyProfile = {
   name: "",
@@ -244,10 +244,13 @@ export function useDashboardData() {
   }, [babyProfile, profile]);
 
   const referenceDate = useMemo(() => {
-    if (babyProfile.birthDate) {
-      return new Date(babyProfile.birthDate);
+    const birthDate = toDate(babyProfile.birthDate);
+    if (birthDate) {
+      return birthDate;
     }
-    return new Date(profile.dueDate);
+
+    const dueDate = toDate(profile.dueDate);
+    return dueDate ?? new Date();
   }, [babyProfile.birthDate, profile.dueDate]);
 
   const recommended = useMemo(

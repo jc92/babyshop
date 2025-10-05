@@ -77,11 +77,11 @@ describe("Home (marketing page)", () => {
     expect(screen.getByRole("link", { name: /See how it works/i })).toHaveAttribute("href", "/how-it-works");
   });
 
-  it("lists the primary sections for new visitors", () => {
+  it("keeps the hero focused on guidance without navigation cards", () => {
     render(<Home />);
 
-    expect(screen.getByRole("link", { name: /Explore overview/i })).toBeVisible();
-    expect(screen.getByRole("link", { name: /Explore curated picks/i })).toBeVisible();
-    expect(screen.getByRole("link", { name: /Explore family profile/i })).toBeVisible();
+    expect(screen.queryByRole("link", { name: /Explore overview/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Explore curated picks/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Explore family profile/i })).toBeNull();
   });
 });

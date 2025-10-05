@@ -52,7 +52,10 @@ export async function POST(request: Request) {
       aiCategoryIds: aiCategoryIds ?? [],
     });
 
-    const created = await ProductDomainService.addProduct(productPayload);
+    const created = await ProductDomainService.addProduct(productPayload, {
+      userId,
+      interactionType: 'wishlist',
+    });
 
     return NextResponse.json({
       message: "Amazon product added successfully",

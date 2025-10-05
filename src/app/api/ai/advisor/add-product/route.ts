@@ -135,7 +135,10 @@ export async function POST(request: Request) {
       aiCategoryIds: normalizedAiCategoryIds,
     });
 
-    const result = await ProductDomainService.addProduct(normalizedPayload);
+    const result = await ProductDomainService.addProduct(normalizedPayload, {
+      userId,
+      interactionType: 'wishlist',
+    });
 
     return NextResponse.json({
       message: "Product created",

@@ -15,6 +15,10 @@ const productRepositoryMock = {
   insert: vi.fn(),
   assignAiCategories: vi.fn(),
   deleteById: vi.fn(),
+  recordUserInteraction: vi.fn(),
+  getUserKnownProductIds: vi.fn(),
+  saveUserRecommendations: vi.fn(),
+  getUserProductList: vi.fn(),
 };
 
 vi.mock("@/lib/products/repository", () => ({
@@ -130,5 +134,22 @@ describe("ProductDomainService", () => {
 
     expect(result).toEqual({ message: "Product removed", id: "prod-3" });
     expect(cacheServiceMock.invalidateProductCache).toHaveBeenCalled();
+  });
+
+  it("returns saved products for a user", async () => {
+    productRepositoryMock.getUserProductList.mockResolvedValue([
+      { productId: "prod-1", name: "Monitor" },
+    ]);
+
+    const list = await ProductDomainService.getUserProductList("user-1");
+
+    expect(productRepositoryMock.getUserProductList).toHaveBeenCalledWith("user-1", undefined);
+    expect(list).toEqual([{ productId: "prod-1", name: "Monitor" }]);
+  });
+
+  it("returns empty list when user id missing", async () => {
+    const list = await ProductDomainService.getUserProductList("");
+    expect(list).toEqual([]);
+    expect(productRepositoryMock.getUserProductList).not.toHaveBeenCalled();
   });
 });

@@ -62,19 +62,16 @@ vi.mock("@/components/navigation/AuthControls", async () => {
       onAuthStateChange?.(snapshot);
     }, [snapshot, onAuthStateChange]);
 
-    if (snapshot.isSignedIn) {
-      return (
-        <div data-testid="auth-controls">
-          <button type="button" onClick={() => onNavigate("/profile")}>Manage profile</button>
-          <span>Hi, {snapshot.firstName ?? "Account"}</span>
-          <div data-testid="user-button" />
-        </div>
-      );
-    }
-
     return (
       <div data-testid="auth-controls">
-        <button type="button">Sign in / create account</button>
+        {snapshot.isSignedIn ? (
+          <>
+            <span>Hi, {snapshot.firstName ?? "Account"}</span>
+            <div data-testid="user-button" />
+          </>
+        ) : (
+          <button type="button">Sign in / create account</button>
+        )}
       </div>
     );
   };
@@ -113,8 +110,7 @@ describe("Navigation", () => {
 
     render(<Navigation />);
 
-    expect(await screen.findByText("Manage profile")).toBeVisible();
-    expect(screen.getByText("Hi, Jamie")).toBeVisible();
+    expect(await screen.findByText("Hi, Jamie")).toBeVisible();
     expect(screen.getByTestId("user-button")).toBeInTheDocument();
   });
 

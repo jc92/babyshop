@@ -15,6 +15,7 @@ async function summarizeTables() {
         'products',
         'user_product_recommendations',
         'user_product_interactions',
+        'advisor_chat_states',
         'ai_categories',
         'product_ai_categories',
         'product_reviews'
@@ -39,4 +40,3 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-

@@ -30,6 +30,7 @@ export async function POST() {
         'products',
         'user_product_recommendations',
         'user_product_interactions',
+        'advisor_chat_states',
         'ai_categories',
         'product_ai_categories',
         'product_reviews'
@@ -70,7 +71,7 @@ export async function GET() {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name IN ('users', 'user_profiles', 'milestones', 'products', 'user_product_recommendations', 'user_product_interactions', 'ai_categories', 'product_ai_categories', 'product_reviews')
+      AND table_name IN ('users', 'user_profiles', 'milestones', 'products', 'user_product_recommendations', 'user_product_interactions', 'advisor_chat_states', 'ai_categories', 'product_ai_categories', 'product_reviews')
       ORDER BY table_name
     `;
 
@@ -85,14 +86,14 @@ export async function GET() {
       FROM information_schema.tables t
       JOIN information_schema.columns c ON t.table_name = c.table_name
       WHERE t.table_schema = 'public' 
-      AND t.table_name IN ('users', 'user_profiles', 'milestones', 'products', 'user_product_recommendations', 'user_product_interactions', 'ai_categories', 'product_ai_categories', 'product_reviews')
+      AND t.table_name IN ('users', 'user_profiles', 'milestones', 'products', 'user_product_recommendations', 'user_product_interactions', 'advisor_chat_states', 'ai_categories', 'product_ai_categories', 'product_reviews')
       ORDER BY t.table_name, c.ordinal_position
     `;
 
     return NextResponse.json({
       existing_tables: tablesResult.rows.map(row => row.table_name),
       schema: schemaResult.rows,
-      status: tablesResult.rows.length === 9 ? 'complete' : 'incomplete'
+      status: tablesResult.rows.length === 10 ? 'complete' : 'incomplete'
     });
 
   } catch (error) {

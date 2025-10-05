@@ -61,8 +61,34 @@ export function rankProducts(
   products: ProductSummary[],
   input: RecommendationInput,
 ): RecommendationResult[] {
-  return products
-    .map((product) => scoreProduct(product, input))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8);
+  const uniqueByProduct = new Map<string, RecommendationResult>();
+
+  for (const product of products) {
+    const scored = scoreProduct(product, input);
+    const existing = uniqueByProduct.get(product.id);
+
+    if (!existing || scored.score > existing.score) {
+      uniqueByProduct.set(product.id, scored);
+    }
+  }
+
+  const sorted = Array.from(uniqueByProduct.values()).sort((a, b) => b.score - a.score);
+
+  const prioritized: RecommendationResult[] = [];
+  const pickedProductIds = new Set<string>();
+
+  for (const category of input.preferredCategories) {
+    const match = sorted.find((item) =>
+      item.product.category === category && !pickedProductIds.has(item.product.id),
+    );
+
+    if (match) {
+      prioritized.push(match);
+      pickedProductIds.add(match.product.id);
+    }
+  }
+
+  const remaining = sorted.filter((item) => !pickedProductIds.has(item.product.id));
+
+  return [...prioritized, ...remaining].slice(0, 8);
 }

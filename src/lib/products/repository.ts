@@ -1,12 +1,14 @@
 import { sql } from '@vercel/postgres';
 import type {
   ProductCreatePayload,
+  ProductInteractionType,
   ProductQueryFilters,
   ProductQueryOptions,
   ProductQueryResult,
   ProductRecord,
   ProductQuerySortField,
   ProductQuerySortOrder,
+  UserProductListItem,
 } from './types';
 
 const DEFAULT_PAGE = 1;
@@ -430,5 +432,193 @@ export class ProductRepository {
     await sql`DELETE FROM user_product_interactions WHERE product_id = ${productId}`;
 
     return result.rowCount ?? 0;
+  }
+
+  static async getUserKnownProductIds(userId: string): Promise<string[]> {
+    if (!userId) {
+      return [];
+    }
+
+    const result = await sql<{ product_id: string }>`
+      SELECT DISTINCT product_id
+      FROM (
+        SELECT product_id FROM user_product_recommendations WHERE user_id = ${userId}
+        UNION
+        SELECT product_id FROM user_product_interactions WHERE user_id = ${userId}
+      ) AS combined
+    `;
+
+    return result.rows.map((row) => row.product_id).filter(Boolean);
+  }
+
+  static async getUserProductList(userId: string, limit = 40): Promise<UserProductListItem[]> {
+    if (!userId) {
+      return [];
+    }
+
+    const normalizedLimit = Math.min(Math.max(limit, 1), 100);
+
+    type UserProductListRow = {
+      product_id: string;
+      name: string;
+      category: string | null;
+      brand: string | null;
+      price_cents: number | null;
+      currency: string | null;
+      milestone_ids: string[] | null;
+      eco_friendly: boolean | null;
+      premium: boolean | null;
+      affiliate_url: string | null;
+      image_url: string | null;
+      source: 'recommendation' | 'interaction';
+      reason: string | null;
+      recommendation_score: string | null;
+      interaction_type: ProductInteractionType | null;
+      created_at: string | null;
+    };
+
+    const result = await sql<UserProductListRow>`
+      WITH combined AS (
+        SELECT
+          product_id,
+          'recommendation'::text AS source,
+          reason,
+          recommendation_score,
+          NULL::text AS interaction_type,
+          created_at
+        FROM user_product_recommendations
+        WHERE user_id = ${userId}
+
+        UNION ALL
+
+        SELECT
+          product_id,
+          'interaction'::text AS source,
+          NULL::text AS reason,
+          NULL::numeric AS recommendation_score,
+          interaction_type,
+          created_at
+        FROM user_product_interactions
+        WHERE user_id = ${userId}
+      ), ranked AS (
+        SELECT
+          product_id,
+          source,
+          reason,
+          recommendation_score,
+          interaction_type,
+          created_at,
+          ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY created_at DESC) AS item_rank
+        FROM combined
+      )
+      SELECT
+        p.id AS product_id,
+        p.name,
+        p.category,
+        p.brand,
+        p.price_cents,
+        p.currency,
+        p.milestone_ids,
+        p.eco_friendly,
+        p.premium,
+        p.affiliate_url,
+        p.image_url,
+        ranked.source,
+        ranked.reason,
+        ranked.recommendation_score,
+        ranked.interaction_type,
+        ranked.created_at
+      FROM ranked
+      JOIN products p ON p.id = ranked.product_id
+      WHERE ranked.item_rank = 1
+      ORDER BY ranked.created_at DESC NULLS LAST, p.name ASC
+      LIMIT ${normalizedLimit}
+    `;
+
+    const toStringArray = (value: unknown): string[] => {
+      if (Array.isArray(value)) {
+        return value.filter((item): item is string => typeof item === 'string' && item.length > 0);
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) {
+          return [];
+        }
+        return trimmed
+          .replace(/^{|}$/g, '')
+          .split(',')
+          .map((entry) => entry.replace(/"/g, '').trim())
+          .filter((entry) => entry.length > 0);
+      }
+      return [];
+    };
+
+    return result.rows.map((row) => {
+      const recommendationScore = row.recommendation_score
+        ? Number.parseFloat(row.recommendation_score)
+        : null;
+
+      return {
+        productId: row.product_id,
+        name: row.name,
+        category: row.category,
+        brand: row.brand,
+        priceCents: typeof row.price_cents === 'number' ? row.price_cents : null,
+        currency: row.currency,
+        milestoneIds: toStringArray(row.milestone_ids),
+        ecoFriendly: row.eco_friendly,
+        premium: row.premium,
+        affiliateUrl: row.affiliate_url,
+        imageUrl: row.image_url,
+        recordedAt: row.created_at,
+        source: row.source,
+        reason: row.reason,
+        recommendationScore: Number.isFinite(recommendationScore) ? recommendationScore : null,
+        interactionType: row.interaction_type,
+      } satisfies UserProductListItem;
+    });
+  }
+
+  static async saveUserRecommendations(
+    userId: string,
+    items: Array<{ productId: string; reason?: string | null }>,
+  ): Promise<void> {
+    if (!userId || items.length === 0) {
+      return;
+    }
+
+    for (const item of items) {
+      if (!item.productId) {
+        continue;
+      }
+
+      await sql`
+        INSERT INTO user_product_recommendations (user_id, product_id, recommendation_score, reason)
+        VALUES (${userId}, ${item.productId}, NULL, ${item.reason ?? null})
+        ON CONFLICT (user_id, product_id) DO UPDATE
+        SET reason = COALESCE(EXCLUDED.reason, user_product_recommendations.reason)
+      `;
+    }
+  }
+
+  static async recordUserInteraction(
+    userId: string,
+    productId: string,
+    interactionType: ProductInteractionType,
+  ): Promise<void> {
+    if (!userId || !productId) {
+      return;
+    }
+
+    await sql`
+      INSERT INTO user_product_interactions (user_id, product_id, interaction_type)
+      SELECT ${userId}, ${productId}, ${interactionType}
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_product_interactions
+        WHERE user_id = ${userId}
+          AND product_id = ${productId}
+          AND interaction_type = ${interactionType}
+      )
+    `;
   }
 }

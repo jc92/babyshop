@@ -15,14 +15,17 @@ export const heroCopy = {
     {
       title: "Timeline adjusts with your due date",
       description: "Stay ahead with auto-shifting reminders for every milestone.",
+      emoji: "🗓️",
     },
     {
       title: "Shortlists gear so you close the tabs",
       description: "See vetted picks that match your budget, style, and values.",
+      emoji: "🛒",
     },
     {
       title: "Stops last-minute registry scrambles",
       description: "Get quick nudges before supplies run out or stages change.",
+      emoji: "⚡",
     },
   ],
 };

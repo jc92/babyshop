@@ -4,16 +4,13 @@
 export function calculateMilestoneDates(
   birthOrDueDate: string
 ): Date {
-  if (!birthOrDueDate) {
-    // Default to current date if no date provided
-    return new Date();
+  const parsed = toDate(birthOrDueDate);
+  if (parsed) {
+    return parsed;
   }
-  
-  const referenceDate = new Date(birthOrDueDate);
-  
-  // If baby is not yet born, use due date as reference
-  // If baby is born, use birth date as reference
-  return referenceDate;
+
+  // Default to current date if parsing fails
+  return new Date();
 }
 
 /**
@@ -125,5 +122,131 @@ export function formatDateForDisplay(value?: string | Date | null, locale?: stri
     return null;
   }
 
-  return formatted.toLocaleDateString(locale ?? undefined);
+  const formatter = new Intl.DateTimeFormat(locale ?? 'en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+
+  return formatter.format(formatted);
+}
+
+/**
+ * Safely create a Date instance from an arbitrary input, normalizing date-only strings to local midnight
+ * while preserving full timestamp information when present.
+ */
+export function toDate(value?: string | Date | null): Date | null {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      return null;
+    }
+
+    const isUtcMidnight =
+      value.getUTCHours() === 0 &&
+      value.getUTCMinutes() === 0 &&
+      value.getUTCSeconds() === 0 &&
+      value.getUTCMilliseconds() === 0;
+
+    if (isUtcMidnight) {
+      return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    }
+
+    return new Date(value.getTime());
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const hasTimeComponent = /[T\s]\d/.test(trimmed);
+    if (!hasTimeComponent) {
+      const iso = toIsoDateString(trimmed);
+      if (!iso) {
+        return null;
+      }
+
+      const [year, month, day] = iso.split('-');
+      if (!year || !month || !day) {
+        return null;
+      }
+
+      const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      const iso = toIsoDateString(trimmed);
+      if (iso) {
+        const timeMatch = trimmed.match(/[T\s](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|[+-]\d{2}:?\d{2})?$/);
+        if (timeMatch) {
+          const [, hours, minutes, seconds, timezone] = timeMatch;
+          const hourValue = Number(hours);
+          const minuteValue = Number(minutes ?? "0");
+          const secondValue = Number(seconds ?? "0");
+          const isMidnight = hourValue === 0 && minuteValue === 0 && secondValue === 0;
+          const hasTimezone = Boolean(timezone);
+
+          if (isMidnight && hasTimezone) {
+            const [year, month, day] = iso.split('-');
+            if (year && month && day) {
+              const midnightLocal = new Date(Number(year), Number(month) - 1, Number(day));
+              if (!Number.isNaN(midnightLocal.getTime())) {
+                return midnightLocal;
+              }
+            }
+          }
+        }
+      }
+
+      return parsed;
+    }
+
+    const fallbackIso = toIsoDateString(trimmed);
+    if (!fallbackIso) {
+      return null;
+    }
+
+    const [fallbackYear, fallbackMonth, fallbackDay] = fallbackIso.split('-');
+    if (!fallbackYear || !fallbackMonth || !fallbackDay) {
+      return null;
+    }
+
+    const fallback = new Date(Number(fallbackYear), Number(fallbackMonth) - 1, Number(fallbackDay));
+    return Number.isNaN(fallback.getTime()) ? null : fallback;
+  }
+
+  if (value == null) {
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Format a date-time value for display with dd/mm/yyyy ordering and 24-hour time.
+ */
+export function formatDateTimeForDisplay(
+  value?: string | Date | null,
+  locale?: string,
+  options?: Intl.DateTimeFormatOptions,
+): string | null {
+  const parsed = toDate(value);
+  if (!parsed) {
+    return null;
+  }
+
+  const formatter = new Intl.DateTimeFormat(locale ?? 'en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    ...options,
+  });
+
+  return formatter.format(parsed);
 }

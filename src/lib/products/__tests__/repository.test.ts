@@ -11,8 +11,21 @@ type DataShape = {
   products: ProductRecord[];
   productAiCategories: Array<{ product_id: string; ai_category_id: string }>;
   productReviews: Array<{ id: string; product_id: string }>;
-  userProductRecommendations: Array<{ id: string; product_id: string }>;
-  userProductInteractions: Array<{ id: string; product_id: string }>;
+  userProductRecommendations: Array<{
+    id: string;
+    product_id: string;
+    user_id: string;
+    reason: string | null;
+    recommendation_score: number | null;
+    created_at: string;
+  }>;
+  userProductInteractions: Array<{
+    id: string;
+    product_id: string;
+    user_id: string;
+    interaction_type: 'view' | 'like' | 'dislike' | 'purchase' | 'wishlist';
+    created_at: string;
+  }>;
 };
 
 const db: DataShape = {
@@ -108,6 +121,79 @@ async function executeQuery(text: string, params: unknown[] = []): Promise<SqlRe
       (entry) => entry.product_id === productId,
     );
     return { rows: [], rowCount: removed };
+  }
+
+  if (normalized.startsWith("WITH combined AS")) {
+    const userId = params[0] as string;
+    const parsedLimit = Number(params[params.length - 1]);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 40;
+
+    const combined = [
+      ...db.userProductRecommendations
+        .filter((entry) => entry.user_id === userId)
+        .map((entry) => ({
+          product_id: entry.product_id,
+          source: 'recommendation' as const,
+          reason: entry.reason,
+          recommendation_score: entry.recommendation_score,
+          interaction_type: null,
+          created_at: entry.created_at,
+        })),
+      ...db.userProductInteractions
+        .filter((entry) => entry.user_id === userId)
+        .map((entry) => ({
+          product_id: entry.product_id,
+          source: 'interaction' as const,
+          reason: null,
+          recommendation_score: null,
+          interaction_type: entry.interaction_type,
+          created_at: entry.created_at,
+        })),
+    ];
+
+    combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const seen = new Set<string>();
+    const rows: Array<Record<string, unknown>> = [];
+
+    for (const entry of combined) {
+      if (seen.has(entry.product_id)) {
+        continue;
+      }
+
+      const product = db.products.find((item) => item.id === entry.product_id);
+      if (!product) {
+        continue;
+      }
+
+      seen.add(entry.product_id);
+
+      rows.push({
+        product_id: product.id,
+        name: product.name,
+        category: product.category,
+        brand: product.brand,
+        price_cents: product.price_cents,
+        currency: product.currency,
+        milestone_ids: product.milestone_ids,
+        eco_friendly: product.eco_friendly,
+        premium: product.premium,
+        affiliate_url: product.affiliate_url,
+        image_url: product.image_url,
+        source: entry.source,
+        reason: entry.reason,
+        recommendation_score:
+          entry.recommendation_score === null ? null : String(entry.recommendation_score),
+        interaction_type: entry.interaction_type,
+        created_at: entry.created_at,
+      });
+
+      if (rows.length >= limit) {
+        break;
+      }
+    }
+
+    return { rows, rowCount: rows.length };
   }
 
   throw new Error(`Unhandled SQL: ${normalized}`);
@@ -329,12 +415,49 @@ function seedAiCategories(entries: Array<{ product_id: string; ai_category_id: s
   db.productAiCategories.push(...entries);
 }
 
-function seedRecommendations(entries: Array<{ id: string; product_id: string }>) {
-  db.userProductRecommendations.push(...entries);
+function seedRecommendations(
+  entries: Array<{
+    id: string;
+    product_id: string;
+    user_id?: string;
+    reason?: string | null;
+    recommendation_score?: number | null;
+    created_at?: string;
+  }>,
+) {
+  const now = new Date().toISOString();
+  db.userProductRecommendations.push(
+    ...entries.map((entry) => ({
+      id: entry.id,
+      product_id: entry.product_id,
+      user_id: entry.user_id ?? 'user-1',
+      reason: entry.reason ?? null,
+      recommendation_score:
+        typeof entry.recommendation_score === 'number' ? entry.recommendation_score : null,
+      created_at: entry.created_at ?? now,
+    })),
+  );
 }
 
-function seedInteractions(entries: Array<{ id: string; product_id: string }>) {
-  db.userProductInteractions.push(...entries);
+function seedInteractions(
+  entries: Array<{
+    id: string;
+    product_id: string;
+    user_id?: string;
+    interaction_type?: 'view' | 'like' | 'dislike' | 'purchase' | 'wishlist';
+    created_at?: string;
+  }>,
+) {
+  const now = new Date().toISOString();
+  db.userProductInteractions.push(
+    ...entries.map((entry) => ({
+      id: entry.id,
+      product_id: entry.product_id,
+      user_id: entry.user_id ?? 'user-1',
+      interaction_type: entry.interaction_type ?? 'wishlist',
+      created_at: entry.created_at ?? now,
+    })),
+  );
 }
 
 function seedReviews(entries: Array<{ id: string; product_id: string }>) {
@@ -459,5 +582,73 @@ describe("ProductRepository.deleteById", () => {
     expect(db.productReviews).toHaveLength(0);
     expect(db.userProductRecommendations).toHaveLength(0);
     expect(db.userProductInteractions).toHaveLength(0);
+  });
+});
+
+describe("ProductRepository.getUserProductList", () => {
+  test("returns the most recent entry per product with metadata", async () => {
+    seedProducts(baseProduct, premiumProduct);
+    seedRecommendations([
+      {
+        id: "rec-1",
+        product_id: "prod-1",
+        user_id: "user-1",
+        reason: "Good for registry",
+        recommendation_score: 0.85,
+        created_at: "2024-01-10T00:00:00.000Z",
+      },
+      {
+        id: "rec-2",
+        product_id: "prod-1",
+        user_id: "other-user",
+        reason: "Ignore",
+        recommendation_score: 0.2,
+        created_at: "2024-01-11T00:00:00.000Z",
+      },
+    ]);
+    seedInteractions([
+      {
+        id: "interaction-1",
+        product_id: "prod-2",
+        user_id: "user-1",
+        interaction_type: "wishlist",
+        created_at: "2024-01-12T00:00:00.000Z",
+      },
+    ]);
+
+    const list = await ProductRepository.getUserProductList("user-1");
+
+    expect(list).toHaveLength(2);
+    expect(list[0]).toMatchObject({
+      productId: "prod-2",
+      source: "interaction",
+      interactionType: "wishlist",
+    });
+    expect(list[1]).toMatchObject({
+      productId: "prod-1",
+      source: "recommendation",
+      reason: "Good for registry",
+      recommendationScore: 0.85,
+    });
+  });
+
+  test("respects row limit", async () => {
+    seedProducts(baseProduct, premiumProduct, outOfStockProduct);
+    seedRecommendations([
+      { id: "rec-1", product_id: "prod-1", user_id: "user-1", created_at: "2024-01-05T00:00:00.000Z" },
+      { id: "rec-2", product_id: "prod-2", user_id: "user-1", created_at: "2024-01-06T00:00:00.000Z" },
+      { id: "rec-3", product_id: "prod-3", user_id: "user-1", created_at: "2024-01-07T00:00:00.000Z" },
+    ]);
+
+    const list = await ProductRepository.getUserProductList("user-1", 2);
+
+    expect(list).toHaveLength(2);
+    expect(list.map((item) => item.productId)).toEqual(["prod-3", "prod-2"]);
+  });
+
+  test("returns empty list when no matches", async () => {
+    seedProducts(baseProduct);
+    const list = await ProductRepository.getUserProductList("missing-user");
+    expect(list).toEqual([]);
   });
 });

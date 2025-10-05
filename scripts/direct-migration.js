@@ -225,6 +225,18 @@ async function runMigration() {
     `;
     console.log('✅ User product interactions table created');
 
+    // 6. Advisor chat states
+    console.log('💬 Creating advisor_chat_states table...');
+    await sql`
+      CREATE TABLE IF NOT EXISTS advisor_chat_states (
+        user_id TEXT PRIMARY KEY REFERENCES users(clerk_id) ON DELETE CASCADE,
+        state JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    console.log('✅ Advisor chat states table created');
+
     // Create indexes for better performance
     console.log('🔍 Creating indexes...');
     await sql`CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);`;
@@ -234,6 +246,7 @@ async function runMigration() {
     await sql`CREATE INDEX IF NOT EXISTS idx_products_age_range ON products(age_range_months_min, age_range_months_max);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_user_recommendations_user_id ON user_product_recommendations(user_id);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_user_interactions_user_id ON user_product_interactions(user_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_advisor_chat_states_updated_at ON advisor_chat_states(updated_at);`;
     console.log('✅ Indexes created');
 
     // Check what tables exist now

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { clerkEnabled, useSafeUser } from "@/lib/clerkClient";
 import { ProductService } from "@/lib/products/service";
+import { formatDateTimeForDisplay } from "@/lib/dateCalculations";
 
 interface Product {
   id: string;
@@ -30,6 +31,7 @@ const KNOWN_TABLES = [
   "products",
   "user_product_recommendations",
   "user_product_interactions",
+  "advisor_chat_states",
   "ai_categories",
   "product_ai_categories",
   "product_reviews",
@@ -95,15 +97,7 @@ function formatCurrencyFromCents(value: number | null) {
 }
 
 function formatDate(input?: string | null) {
-  if (!input) return "—";
-  const date = new Date(input);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  return formatDateTimeForDisplay(input) ?? "—";
 }
 
 export function AdminV2Console() {
@@ -117,6 +111,7 @@ export function AdminV2Console() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
+  const showAiImportNotice = addLoading;
 
   const existingTables = useMemo(() => new Set(databaseInfo?.existing_tables ?? []), [databaseInfo?.existing_tables]);
   const missingTables = useMemo(
@@ -515,6 +510,22 @@ export function AdminV2Console() {
               {addError ? <span className="text-sm text-red-600">{addError}</span> : null}
               {addSuccess ? <span className="text-sm text-emerald-600">{addSuccess}</span> : null}
             </div>
+
+            {showAiImportNotice ? (
+              <div className="lg:col-span-2">
+                <div className="mt-4 flex gap-4 rounded-3xl border border-indigo-200 bg-indigo-50/70 px-5 py-4 shadow-sm">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-inner">
+                    <span className="inline-flex h-7 w-7 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <p className="text-sm font-semibold text-indigo-900">Scanning product specs with our AI agent…</p>
+                    <p className="mt-1 text-xs text-indigo-700/80">
+                      We’re fetching the page, extracting pricing and safety callouts, then saving it to your catalog automatically.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </form>
         </section>
 

@@ -4,6 +4,12 @@ import { z } from "zod";
 import { getOpenAIClient } from "@/lib/openaiAgent";
 import { ProductDomainService } from "@/lib/products/domainService";
 
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+
+function isUuid(value?: string | null): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value);
+}
+
 const requestMessageSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
   content: z.string().min(1),
@@ -117,6 +123,32 @@ export async function POST(request: Request) {
     premium: product.premium,
   }));
 
+  const userProductList = await ProductDomainService.getUserProductList(userId, 60);
+  const userListForModel = userProductList.slice(0, 20).map((item) => ({
+    productId: item.productId,
+    name: item.name,
+    category: item.category,
+    milestoneIds: item.milestoneIds,
+    source: item.source,
+    recordedAt: item.recordedAt,
+    reason: item.reason ?? undefined,
+    interactionType: item.interactionType ?? undefined,
+  }));
+
+  const knownProductIds = new Set<string>();
+  for (const item of userProductList) {
+    if (item.productId) {
+      knownProductIds.add(item.productId.toLowerCase());
+    }
+  }
+
+  const fallbackKnownIds = await ProductDomainService.getUserKnownProductIds(userId);
+  for (const id of fallbackKnownIds) {
+    if (id) {
+      knownProductIds.add(id.toLowerCase());
+    }
+  }
+
   const messages: AdvisorChatMessage[] = parsedBody.messages.map((message) => ({
     role: message.role,
     content: message.content,
@@ -142,6 +174,7 @@ export async function POST(request: Request) {
               "Highlight only the most relevant readiness steps or products. If something can wait, say so in one clause, no explanations beyond that.",
               "Prefer concrete next steps over storytelling. Mention location-relevant context only when it changes availability or services.",
               "If nothing helpful is needed yet, say that confidently in a single sentence instead of trying to fill space.",
+              "If the customer already has an item in their saved list, acknowledge it and guide them on next steps instead of re-recommending it.",
             ].join(" "),
           },
           {
@@ -151,6 +184,13 @@ export async function POST(request: Request) {
           {
             role: "system" as const,
             content: `Catalog: ${JSON.stringify(catalog)}`,
+          },
+          {
+            role: "system" as const,
+            content: `Saved product list snapshot: ${JSON.stringify({
+              total: userProductList.length,
+              items: userListForModel,
+            })}`,
           },
           ...messages,
         ];
@@ -192,11 +232,19 @@ export async function POST(request: Request) {
               "Keep each `reason` to 18 words or fewer and focus on the single most important benefit.",
               "It is fine to return an empty list if nothing is needed.",
               "If the conversation indicates the customer wants Nestlings Planner to save or stock an item (for example they ask to add it, plan to buy later, or request follow-up), include `addProductPrompt: { \"message\": string }` with a concise invitation you would tell the customer. Otherwise omit that field.",
+              "Never suggest products the customer already has in their saved list snapshot unless they explicitly ask for confirmation or alternatives.",
             ].join(" "),
           },
           {
             role: "system" as const,
             content: `Catalog: ${JSON.stringify(catalog)}`,
+          },
+          {
+            role: "system" as const,
+            content: `Saved product list snapshot: ${JSON.stringify({
+              total: userProductList.length,
+              items: userListForModel,
+            })}`,
           },
           ...messages,
           {
@@ -326,6 +374,9 @@ export async function POST(request: Request) {
         }
 
         const productLookup = new Map(catalog.map((item) => [item.id, item]));
+        const interestMessage = parsedResponse?.addProductPrompt?.message?.trim?.() ?? "";
+        const hasInterest = interestMessage.length > 0;
+
         const suggestions = (parsedResponse?.suggestions ?? [])
           .map((suggestion) => {
             const product = productLookup.get(suggestion.productId);
@@ -361,11 +412,38 @@ export async function POST(request: Request) {
           })
           .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
+        const filteredSuggestions = suggestions.filter((item) => {
+          if (!item?.productId) {
+            return true;
+          }
+          const key = item.productId.toLowerCase();
+          return !knownProductIds.has(key);
+        });
+
+        if (hasInterest && filteredSuggestions.length > 0) {
+          for (const item of filteredSuggestions) {
+            if (item?.productId) {
+              knownProductIds.add(item.productId.toLowerCase());
+            }
+          }
+
+          const storeable = filteredSuggestions.filter((item) => isUuid(item.productId));
+          if (storeable.length > 0) {
+            await ProductDomainService.rememberRecommendations(
+              userId,
+              storeable.map((item) => ({
+                productId: item.productId,
+                reason: item.reason?.trim?.() || null,
+              })),
+            );
+          }
+        }
+
         send({
           type: "suggestions",
-          value: suggestions,
+          value: hasInterest ? filteredSuggestions : [],
           reply: finalReply,
-          addProductPrompt: parsedResponse?.addProductPrompt?.message ?? null,
+          addProductPrompt: hasInterest && filteredSuggestions.length > 0 ? interestMessage : null,
         });
         send({ type: "done" });
         controller.close();

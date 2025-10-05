@@ -10,10 +10,13 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "kadolog:survey": "node scripts/kadolog-batch.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.33.1",
+    "@formkit/auto-animate": "^0.9.0",
+    "motion": "^11.15.0",
     "@fullcalendar/daygrid": "^6.1.15",
     "@fullcalendar/interaction": "^6.1.15",
     "@fullcalendar/multimonth": "^6.1.19",

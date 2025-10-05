@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDateForDisplay } from "@/lib/dateCalculations";
 import { clerkEnabled, useSafeUser } from "@/lib/clerkClient";
 
 interface DatabaseStats {
@@ -122,13 +123,13 @@ export function AdminConsole() {
               </div>
               <div className="rounded bg-purple-50 p-4">
                 <div className="text-sm font-bold text-purple-600">
-                  {databaseInfo.stats.first_user ? new Date(databaseInfo.stats.first_user).toLocaleDateString() : "—"}
+                  {databaseInfo.stats.first_user ? formatDateForDisplay(databaseInfo.stats.first_user) ?? "—" : "—"}
                 </div>
                 <div className="text-sm text-gray-600">First User</div>
               </div>
               <div className="rounded bg-orange-50 p-4">
                 <div className="text-sm font-bold text-orange-600">
-                  {databaseInfo.stats.latest_user ? new Date(databaseInfo.stats.latest_user).toLocaleDateString() : "—"}
+                  {databaseInfo.stats.latest_user ? formatDateForDisplay(databaseInfo.stats.latest_user) ?? "—" : "—"}
                 </div>
                 <div className="text-sm text-gray-600">Latest User</div>
               </div>
@@ -194,8 +195,8 @@ export function AdminConsole() {
                   {users.map((row, index) => (
                     <tr key={`${row.user_id}-${index}`} className="border-b">
                       <td className="py-2 font-mono text-sm">{row.user_id.slice(0, 8)}…</td>
-                      <td className="py-2 text-sm">{new Date(row.created_at).toLocaleDateString()}</td>
-                      <td className="py-2 text-sm">{row.due_date || "-"}</td>
+                      <td className="py-2 text-sm">{formatDateForDisplay(row.created_at) ?? "-"}</td>
+                      <td className="py-2 text-sm">{formatDateForDisplay(row.due_date) ?? "-"}</td>
                       <td className="py-2 text-sm">{row.budget || "-"}</td>
                       <td className="py-2 text-sm">{row.baby_gender || "-"}</td>
                       <td className="py-2 text-sm">{row.baby_nickname || "-"}</td>
@@ -220,7 +221,7 @@ export function AdminConsole() {
               <strong>Email:</strong> {user.emailAddresses[0]?.emailAddress ?? "-"}
             </div>
             <div>
-              <strong>Created:</strong> {user.createdAt?.toLocaleDateString?.() ?? "Unknown"}
+              <strong>Created:</strong> {user.createdAt ? formatDateForDisplay(user.createdAt) ?? "Unknown" : "Unknown"}
             </div>
           </div>
         </div>
@@ -228,4 +229,3 @@ export function AdminConsole() {
     </div>
   );
 }
-

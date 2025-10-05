@@ -1,6 +1,8 @@
 import type { ProductSummary, CategoryId, MilestoneId } from '@/data/catalog';
 import type { ProductInput } from '@/schemas/product';
 
+export type ProductInteractionType = 'view' | 'like' | 'dislike' | 'purchase' | 'wishlist';
+
 export interface ProductRecord {
   id: string;
   name: string;
@@ -122,3 +124,23 @@ export interface ProductSummaryAdapterOutput extends ProductSummary {
   category: CategoryId;
 }
 
+export type UserProductListSource = 'recommendation' | 'interaction';
+
+export interface UserProductListItem {
+  productId: string;
+  name: string;
+  category: string | null;
+  brand: string | null;
+  priceCents: number | null;
+  currency: string | null;
+  milestoneIds: string[];
+  ecoFriendly: boolean | null;
+  premium: boolean | null;
+  affiliateUrl: string | null;
+  imageUrl: string | null;
+  recordedAt: string | null;
+  source: UserProductListSource;
+  reason?: string | null;
+  recommendationScore?: number | null;
+  interactionType?: ProductInteractionType | null;
+}

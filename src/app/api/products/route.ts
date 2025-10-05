@@ -15,7 +15,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = productSchema.parse(body);
-    const result = await ProductDomainService.addProduct(parsed);
+    const result = await ProductDomainService.addProduct(parsed, {
+      userId,
+      interactionType: 'wishlist',
+    });
 
     return NextResponse.json(result);
 

@@ -9,6 +9,7 @@ import {
   SignInPrompt,
 } from "@/components/dashboard/sections";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { formatDateForDisplay } from "@/lib/dateCalculations";
 
 const AiAdvisorChat = dynamic(() => import("@/components/AiAdvisorChat"), {
   ssr: false,
@@ -39,6 +40,14 @@ const CalendarSection = dynamic(
   },
 );
 
+const CurrentMilestoneCard = dynamic(
+  () => import("@/components/dashboard/sections").then((mod) => mod.CurrentMilestoneCard),
+  {
+    ssr: false,
+    loading: () => null,
+  },
+);
+
 export default function OverviewPage() {
   const router = useRouter();
   const {
@@ -66,25 +75,79 @@ export default function OverviewPage() {
     return <SignInPrompt />;
   }
 
+  const orderedMilestones = timelineMilestones ?? [];
+  const currentMilestoneIndex = activeMilestoneId
+    ? orderedMilestones.findIndex((item) => item.id === activeMilestoneId)
+    : -1;
+  const previousMilestone = currentMilestoneIndex > 0 ? orderedMilestones[currentMilestoneIndex - 1] : null;
+  const nextMilestone =
+    currentMilestoneIndex >= 0 && currentMilestoneIndex < orderedMilestones.length - 1
+      ? orderedMilestones[currentMilestoneIndex + 1]
+      : null;
+  const babyDisplayName = babyProfile?.nickname?.trim() || babyProfile?.name?.trim() || null;
+  const formattedPlanDueDate = formatDateForDisplay(profile?.dueDate);
+  const formattedBirthDate = formatDateForDisplay(babyProfile?.birthDate);
+  const formattedBabyDueDate = formatDateForDisplay(babyProfile?.dueDate);
+  const dueDateLabel = formattedPlanDueDate
+    ? `Due ${formattedPlanDueDate}`
+    : formattedBirthDate
+      ? `Born ${formattedBirthDate}`
+      : formattedBabyDueDate || null;
+  const showCurrentMilestoneCardInHeader = Boolean(activeMilestone);
+
   return (
     <div className="min-h-screen bg-[var(--baby-neutral-50)] text-[var(--dreambaby-text)]">
       <Navigation />
 
-      <header className="border-b border-[color:rgba(207,210,198,0.4)] pt-24">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-12 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-3">
-            <h1 className="text-3xl font-semibold tracking-tight text-[var(--dreambaby-text)]">Overview</h1>
-            <p className="max-w-2xl text-sm text-[var(--dreambaby-muted)]">
-              Track upcoming deliveries and developmental prompts across every milestone. Use the navigator below to jump forward or back as your plan evolves.
-            </p>
-          </div>
-          <div className="rounded-full border border-[var(--baby-neutral-300)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--baby-primary-500)]">
-            {profile.budget} plan · {timelineMilestones.length} milestones
-          </div>
-        </div>
-      </header>
+      <main className="mx-auto w-full max-w-6xl px-6 pt-28 pb-20 space-y-14">
+        <header className="rounded-3xl border border-[var(--baby-neutral-200)] bg-white/90 p-10 shadow-[0_24px_60px_rgba(111,144,153,0.12)] backdrop-blur">
+          <div
+            className={`grid gap-10 ${
+              showCurrentMilestoneCardInHeader
+                ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] lg:items-start"
+                : ""
+            }`}
+          >
+            <div>
+              <span className="theme-pill theme-pill--primary">Dashboard overview</span>
+              <h1 className="mt-5 text-4xl font-semibold tracking-tight text-[var(--dreambaby-text)] sm:text-5xl">
+                Stay one step ahead of every milestone
+              </h1>
+              <p className="mt-4 max-w-3xl text-lg text-[var(--dreambaby-muted)]">
+                Review your current milestone, queued gear, and the calendar of upcoming reminders. Adjust preferences or jump to curated picks whenever you’re ready.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-[var(--dreambaby-muted)]">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--baby-primary-100)] px-4 py-2 font-semibold text-[var(--baby-primary-600)]">
+                  {profile.budget} budget plan
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--baby-secondary-100)] px-4 py-2 font-semibold text-[var(--baby-secondary-500)]">
+                  {timelineMilestones.length} milestones in view
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--baby-neutral-100)] px-4 py-2 font-semibold text-[var(--dreambaby-muted)]">
+                  {activeMilestone?.label ?? "No active milestone"}
+                </span>
+              </div>
+            </div>
 
-      <main className="mx-auto max-w-6xl space-y-14 px-6 py-14">
+            {activeMilestone ? (
+              <div className="lg:justify-self-end lg:w-full lg:max-w-[320px]">
+                <CurrentMilestoneCard
+                  milestone={activeMilestone}
+                  products={activeMilestoneProducts ?? []}
+                  budgetLabel={budgetLabel}
+                  budgetDescription={budgetDescription}
+                  previousMilestone={previousMilestone ?? undefined}
+                  nextMilestone={nextMilestone ?? undefined}
+                  onSelectMilestone={setActiveMilestoneId}
+                  babyLabel={babyDisplayName ?? undefined}
+                  dueDateLabel={dueDateLabel ?? undefined}
+                  disableSticky
+                />
+              </div>
+            ) : null}
+          </div>
+        </header>
+
         <MilestoneSummarySection
           milestone={activeMilestone}
           products={activeMilestoneProducts}
@@ -99,6 +162,7 @@ export default function OverviewPage() {
           activeMilestoneId={activeMilestoneId}
           onSelectMilestone={setActiveMilestoneId}
           showRecommendations={false}
+          showCurrentMilestoneCard={!showCurrentMilestoneCardInHeader}
         />
 
         <CalendarSection
@@ -109,16 +173,18 @@ export default function OverviewPage() {
         />
       </main>
 
-      <DeferredRender
-        eager
-        fallback={
-          <div className="mx-auto flex max-w-6xl items-center justify-center px-6 pb-12 text-sm text-[var(--dreambaby-muted)]">
-            Initializing AI advisor…
-          </div>
-        }
-      >
-        <AiAdvisorChat />
-      </DeferredRender>
+      <div>
+        <DeferredRender
+          eager
+          fallback={
+            <div className="mx-auto flex max-w-6xl items-center justify-center px-6 pb-12 text-sm text-[var(--dreambaby-muted)]">
+              Initializing AI advisor…
+            </div>
+          }
+        >
+          <AiAdvisorChat />
+        </DeferredRender>
+      </div>
     </div>
   );
 }

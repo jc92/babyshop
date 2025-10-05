@@ -46,6 +46,7 @@ type ChatBubble = {
   suggestions?: AdvisorSuggestion[];
   error?: boolean;
   addProductSourceUrl?: string | null;
+  addProductPrompt?: string | null;
 };
 
 const advisorPrompts = [
@@ -64,6 +65,50 @@ type PersistedChatState = {
   messages: ChatBubble[];
 };
 
+type AdvisorChatCacheGlobals = typeof globalThis & {
+  __nestlingsAdvisorChatCache?: Map<string, PersistedChatState>;
+};
+
+const advisorChatGlobal = globalThis as AdvisorChatCacheGlobals;
+
+const chatStateCache =
+  advisorChatGlobal.__nestlingsAdvisorChatCache ?? new Map<string, PersistedChatState>();
+
+if (!advisorChatGlobal.__nestlingsAdvisorChatCache) {
+  advisorChatGlobal.__nestlingsAdvisorChatCache = chatStateCache;
+}
+
+export function __resetAdvisorChatCacheForTests() {
+  if (process.env.NODE_ENV === "test") {
+    chatStateCache.clear();
+    advisorChatGlobal.__nestlingsAdvisorChatCache = chatStateCache;
+  }
+}
+
+function clonePersistedState(state: PersistedChatState): PersistedChatState {
+  try {
+    return structuredClone(state);
+  } catch {
+    return JSON.parse(JSON.stringify(state)) as PersistedChatState;
+  }
+}
+
+function normalizePersistedState(
+  data: Partial<PersistedChatState> | null | undefined,
+  fallbackMilestoneId: MilestoneId,
+): PersistedChatState {
+  const messages = Array.isArray(data?.messages) ? (data?.messages as ChatBubble[]) : [];
+
+  return {
+    isOpen: Boolean(data?.isOpen),
+    inputValue: typeof data?.inputValue === "string" ? data.inputValue : "",
+    milestoneId:
+      (typeof data?.milestoneId === "string" ? (data.milestoneId as MilestoneId) : fallbackMilestoneId) ??
+      fallbackMilestoneId,
+    messages,
+  } satisfies PersistedChatState;
+}
+
 function formatPrice(priceCents: number | null | undefined) {
   if (priceCents === null || priceCents === undefined) {
     return null;
@@ -80,11 +125,26 @@ function getChatStorageKey(userId: string | null | undefined, isSignedIn: boolea
 
 export default function AiAdvisorChat() {
   const { isLoaded, isSignedIn, user } = useSafeUser();
-  const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
-  const [messages, setMessages] = useState<ChatBubble[]>([]);
-  const [profile, setProfile] = useState<AdvisorProfile | null>(null);
   const FALLBACK_MILESTONE_ID: MilestoneId = "prenatal";
+  const chatStorageKey = getChatStorageKey(user?.id ?? null, Boolean(isSignedIn));
+
+  const initialPersistedStateRef = useRef<PersistedChatState | null>(null);
+  if (initialPersistedStateRef.current === null && typeof window !== "undefined") {
+    const cachedState = chatStateCache.get(chatStorageKey);
+    if (cachedState) {
+      initialPersistedStateRef.current = clonePersistedState(cachedState);
+    }
+  }
+
+  const [isOpen, setIsOpen] = useState(initialPersistedStateRef.current?.isOpen ?? false);
+  const [inputValue, setInputValue] = useState(initialPersistedStateRef.current?.inputValue ?? "");
+  const [messages, setMessages] = useState<ChatBubble[]>(() =>
+    initialPersistedStateRef.current?.messages ? [...initialPersistedStateRef.current.messages] : [],
+  );
+  const [milestoneId, setMilestoneId] = useState<MilestoneId>(
+    initialPersistedStateRef.current?.milestoneId ?? FALLBACK_MILESTONE_ID,
+  );
+  const [profile, setProfile] = useState<AdvisorProfile | null>(null);
   const [availableMilestones, setAvailableMilestones] = useState<Milestone[]>([]);
   const milestoneOptions = useMemo(
     () =>
@@ -94,7 +154,6 @@ export default function AiAdvisorChat() {
       })),
     [availableMilestones],
   );
-  const [milestoneId, setMilestoneId] = useState<MilestoneId>(FALLBACK_MILESTONE_ID);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingProductUrl, setIsCreatingProductUrl] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -103,10 +162,8 @@ export default function AiAdvisorChat() {
     isPaused: isOpen,
   });
   const storageHydratedRef = useRef(false);
-  const chatStorageKey = useMemo(
-    () => getChatStorageKey(user?.id ?? null, Boolean(isSignedIn)),
-    [isSignedIn, user?.id],
-  );
+  const seenSuggestionProductIdsRef = useRef<Set<string>>(new Set());
+  const seenSuggestionUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let isMounted = true;
@@ -143,12 +200,29 @@ export default function AiAdvisorChat() {
       setInputValue("");
       setMessages([]);
       setMilestoneId(FALLBACK_MILESTONE_ID);
+      seenSuggestionProductIdsRef.current.clear();
+      seenSuggestionUrlsRef.current.clear();
+    };
+
+    const applyPersistedState = (state: PersistedChatState) => {
+      setIsOpen(Boolean(state.isOpen));
+      setInputValue(typeof state.inputValue === "string" ? state.inputValue : "");
+      setMessages(Array.isArray(state.messages) ? (state.messages as ChatBubble[]) : []);
+      setMilestoneId((state.milestoneId as MilestoneId) ?? FALLBACK_MILESTONE_ID);
     };
 
     try {
+      const cachedState = chatStateCache.get(chatStorageKey);
+      if (cachedState) {
+        applyPersistedState(clonePersistedState(cachedState));
+        storageHydratedRef.current = true;
+        return;
+      }
+
       const raw = window.localStorage.getItem(chatStorageKey);
       if (!raw) {
         resetStateToDefaults();
+        chatStateCache.delete(chatStorageKey);
         storageHydratedRef.current = true;
         return;
       }
@@ -156,21 +230,18 @@ export default function AiAdvisorChat() {
       const parsed = JSON.parse(raw) as Partial<PersistedChatState> | null;
       if (!parsed || typeof parsed !== "object") {
         resetStateToDefaults();
+        chatStateCache.delete(chatStorageKey);
         storageHydratedRef.current = true;
         return;
       }
 
-      setIsOpen(Boolean(parsed.isOpen));
-      setInputValue(typeof parsed.inputValue === "string" ? parsed.inputValue : "");
-      setMessages(Array.isArray(parsed.messages) ? (parsed.messages as ChatBubble[]) : []);
-      if (parsed.milestoneId) {
-        setMilestoneId(parsed.milestoneId as MilestoneId);
-      } else {
-        setMilestoneId(FALLBACK_MILESTONE_ID);
-      }
+      const normalized = normalizePersistedState(parsed, FALLBACK_MILESTONE_ID);
+      applyPersistedState(normalized);
+      chatStateCache.set(chatStorageKey, clonePersistedState(normalized));
     } catch (error) {
       console.error("Failed to read advisor chat state", error);
       resetStateToDefaults();
+      chatStateCache.delete(chatStorageKey);
     } finally {
       storageHydratedRef.current = true;
     }
@@ -193,11 +264,36 @@ export default function AiAdvisorChat() {
     };
 
     try {
-      window.localStorage.setItem(chatStorageKey, JSON.stringify(payload));
+      const normalized = normalizePersistedState(payload, FALLBACK_MILESTONE_ID);
+      window.localStorage.setItem(chatStorageKey, JSON.stringify(normalized));
+      chatStateCache.set(chatStorageKey, clonePersistedState(normalized));
     } catch (error) {
       console.error("Failed to persist advisor chat state", error);
     }
   }, [isOpen, inputValue, messages, milestoneId, chatStorageKey]);
+
+  useEffect(() => {
+    const nextProductIds = new Set<string>();
+    const nextUrls = new Set<string>();
+
+    for (const message of messages) {
+      if (!message?.suggestions) {
+        continue;
+      }
+
+      for (const suggestion of message.suggestions) {
+        if (suggestion?.productId) {
+          nextProductIds.add(suggestion.productId.toLowerCase());
+        }
+        if (suggestion?.affiliateUrl) {
+          nextUrls.add(suggestion.affiliateUrl.toLowerCase());
+        }
+      }
+    }
+
+    seenSuggestionProductIdsRef.current = nextProductIds;
+    seenSuggestionUrlsRef.current = nextUrls;
+  }, [messages]);
 
   useEffect(() => {
     let cancelled = false;
@@ -337,6 +433,7 @@ export default function AiAdvisorChat() {
         content: "",
         suggestions: [],
         addProductSourceUrl: null,
+        addProductPrompt: null,
       },
     ]);
 
@@ -468,7 +565,48 @@ export default function AiAdvisorChat() {
                 acc.push(normalized);
                 return acc;
               }, []);
-              const actionableSuggestions = typedSuggestions.filter((item) => {
+              const promptTextRaw =
+                typeof payload.addProductPrompt === "string" ? payload.addProductPrompt.trim() : "";
+              const hasInterest = promptTextRaw.length > 0;
+
+              const productIdSet = seenSuggestionProductIdsRef.current;
+              const urlSet = seenSuggestionUrlsRef.current;
+              const localProductIds = new Set<string>();
+              const localUrls = new Set<string>();
+
+              const dedupedSuggestions = typedSuggestions.filter((item) => {
+                const idKey = item.productId ? item.productId.toLowerCase() : null;
+                const urlKey = item.affiliateUrl ? item.affiliateUrl.toLowerCase() : null;
+
+                if (idKey && (productIdSet.has(idKey) || localProductIds.has(idKey))) {
+                  return false;
+                }
+
+                if (urlKey && (urlSet.has(urlKey) || localUrls.has(urlKey))) {
+                  return false;
+                }
+
+                if (idKey) {
+                  localProductIds.add(idKey);
+                }
+                if (urlKey) {
+                  localUrls.add(urlKey);
+                }
+
+                return true;
+              });
+
+              if (!hasInterest || dedupedSuggestions.length === 0) {
+                updateAssistant((message) => ({
+                  ...message,
+                  suggestions: [],
+                  addProductSourceUrl: null,
+                  addProductPrompt: null,
+                }));
+                break;
+              }
+
+              const actionableSuggestions = dedupedSuggestions.filter((item) => {
                 if (!item) {
                   return false;
                 }
@@ -482,9 +620,13 @@ export default function AiAdvisorChat() {
 
               updateAssistant((message) => ({
                 ...message,
-                suggestions: typedSuggestions,
+                suggestions: dedupedSuggestions,
                 addProductSourceUrl,
+                addProductPrompt: promptTextRaw,
               }));
+
+              localProductIds.forEach((id) => productIdSet.add(id));
+              localUrls.forEach((url) => urlSet.add(url));
               break;
             }
             case "error": {
@@ -579,6 +721,7 @@ export default function AiAdvisorChat() {
         content: "I need the product link in order to save it. Open the item you like and copy the full URL first.",
         error: true,
         addProductSourceUrl: null,
+        addProductPrompt: null,
       });
       return;
     }
@@ -589,7 +732,9 @@ export default function AiAdvisorChat() {
       }
       setMessages((current) =>
         current.map((message) =>
-          message.id === targetMessage.id ? { ...message, addProductSourceUrl: null } : message,
+          message.id === targetMessage.id
+            ? { ...message, addProductSourceUrl: null, addProductPrompt: null }
+            : message,
         ),
       );
     };
@@ -601,6 +746,7 @@ export default function AiAdvisorChat() {
         content: `${message}\nSource: ${link}`.trim(),
         error: true,
         addProductSourceUrl: null,
+        addProductPrompt: null,
       });
       clearSourceUrl();
     };
@@ -714,6 +860,7 @@ export default function AiAdvisorChat() {
               ]
             : [],
           addProductSourceUrl: null,
+          addProductPrompt: null,
         });
         clearSourceUrl();
         return true;
@@ -734,6 +881,8 @@ export default function AiAdvisorChat() {
     return milestoneOptions.find((option) => option.id === milestoneId)?.label ?? "Milestone";
   }, [milestoneId, milestoneOptions]);
 
+  const selectFieldClassName =
+    "min-w-[160px] appearance-none rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-3 py-2 pr-9 text-sm text-[var(--dreambaby-text)] shadow-sm transition focus:border-[var(--baby-primary-300)] focus:outline-none focus:ring-2 focus:ring-[var(--baby-primary-100)]";
   const isCreatingProduct = isCreatingProductUrl !== null;
 
   if (!isLoaded) {
@@ -768,20 +917,33 @@ export default function AiAdvisorChat() {
 
           {isSignedIn ? (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex items-center justify-between border-b border-[var(--baby-neutral-300)] px-4 py-2 text-xs text-[var(--dreambaby-muted)]">
-                <label className="flex items-center gap-2">
-                  <span className="font-medium text-[var(--dreambaby-text)]">Milestone</span>
-                  <select
-                    className="rounded-md border border-[var(--baby-neutral-300)] bg-white px-2 py-1 text-xs focus:border-[var(--baby-primary-300)] focus:outline-none focus:ring-1 focus:ring-[var(--baby-primary-200)]"
-                    value={milestoneId}
-                    onChange={(event) => setMilestoneId(event.target.value as MilestoneId)}
-                  >
-                    {milestoneOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+              <div className="flex items-center justify-between border-b border-[var(--baby-neutral-300)] px-4 py-2 text-sm text-[var(--dreambaby-muted)]">
+                <label className="flex items-center gap-3 text-sm text-[var(--dreambaby-text)]">
+                  <span className="font-medium">Milestone</span>
+                  <div className="relative">
+                    <select
+                      className={selectFieldClassName}
+                      value={milestoneId}
+                      onChange={(event) => setMilestoneId(event.target.value as MilestoneId)}
+                    >
+                      {milestoneOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--dreambaby-muted)]">
+                      <svg aria-hidden viewBox="0 0 20 20" fill="none" className="size-4">
+                        <path
+                          d="M5 8l5 5 5-5"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  </div>
                 </label>
                 {profileLoading && <span className="text-[var(--dreambaby-muted)]">Loading…</span>}
               </div>
@@ -878,7 +1040,9 @@ export default function AiAdvisorChat() {
 
                       {message.role === "assistant" && message.addProductSourceUrl && (
                         <div className="mt-3 space-y-3 rounded-md border border-[var(--baby-primary-200)] bg-[var(--baby-primary-50)] p-3 text-xs text-[var(--baby-primary-600)]">
-                          <p className="leading-relaxed">Want me to save this recommendation to your catalog?</p>
+                          <p className="leading-relaxed">
+                            {message.addProductPrompt ?? "Want me to save this recommendation to your catalog?"}
+                          </p>
                           <button
                             type="button"
                             onClick={() => handleCreateProduct({ messageId: message.id })}
@@ -889,6 +1053,12 @@ export default function AiAdvisorChat() {
                               ? "Saving…"
                               : "Add this to the catalog"}
                           </button>
+                        </div>
+                      )}
+
+                      {message.role === "assistant" && !message.addProductSourceUrl && message.addProductPrompt && (
+                        <div className="mt-3 rounded-md border border-[var(--baby-primary-200)] bg-[var(--baby-primary-50)] px-3 py-2 text-xs text-[var(--baby-primary-600)]">
+                          <p className="leading-relaxed">{message.addProductPrompt}</p>
                         </div>
                       )}
                     </div>

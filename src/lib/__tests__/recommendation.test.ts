@@ -66,4 +66,36 @@ describe("recommendation scoring", () => {
     expect(topRecommendation.product.id).toBe("eco");
     expect(topRecommendation.score).toBeGreaterThan(0);
   });
+
+  test("rankProducts keeps only the highest-scoring duplicate", () => {
+    const duplicateLow = buildProduct({ id: "dup", rating: 4.1 });
+    const duplicateHigh = buildProduct({ id: "dup", rating: 4.9 });
+    const another = buildProduct({ id: "another", category: "feeding", rating: 4.4 });
+
+    const results = rankProducts([duplicateLow, duplicateHigh, another], {
+      ...basePreferences,
+      preferredCategories: ["nursing", "feeding"],
+    });
+
+    const duplicateMatches = results.filter((item) => item.product.id === "dup");
+
+    expect(duplicateMatches).toHaveLength(1);
+    expect(duplicateMatches[0]?.score).toBeGreaterThanOrEqual(duplicateHigh.rating);
+  });
+
+  test("rankProducts prioritizes preferred categories when available", () => {
+    const nursing = buildProduct({ id: "nursing", category: "nursing", rating: 4.2 });
+    const safety = buildProduct({ id: "safety", category: "safety", rating: 4.1 });
+    const travel = buildProduct({ id: "travel", category: "travel", rating: 4.7 });
+
+    const [first, second] = rankProducts([nursing, safety, travel], {
+      ...basePreferences,
+      preferredCategories: ["safety", "nursing"],
+    });
+
+    expect([first.product.category, second.product.category]).toEqual([
+      "safety",
+      "nursing",
+    ]);
+  });
 });

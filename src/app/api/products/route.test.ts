@@ -70,6 +70,7 @@ describe("/api/products route", () => {
     expect(response.status).toBe(200);
     expect(domainServiceMock.addProduct).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Monitor", category: "monitoring" }),
+      expect.objectContaining({ userId: "user_123", interactionType: "wishlist" }),
     );
     expect(body.message).toMatch(/Product created/);
   });

@@ -18,11 +18,11 @@ const checkStatus = async () => {
       console.log('Existing tables:', result.existing_tables);
       console.log('Schema entries:', result.schema?.length || 0);
       
-      if (result.existing_tables.length === 5) {
+      if (result.existing_tables.length === 6) {
         console.log('✅ All tables exist!');
       } else {
         console.log('❌ Missing tables. Need to run migration.');
-        console.log('Expected: users, user_profiles, products, user_product_recommendations, user_product_interactions');
+        console.log('Expected: users, user_profiles, products, user_product_recommendations, user_product_interactions, advisor_chat_states');
       }
     } else {
       console.error('❌ Failed to check status:', result.error);

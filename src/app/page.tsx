@@ -1,10 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
-import { products } from "@/data/catalog";
-import { defaultMilestones } from "@/data/defaultMilestones";
+import { TrustCarousel } from "@/components/TrustCarousel";
 import { heroCopy } from "@/lib/copy/hero";
-import { sectionNavItems } from "@/lib/navigation";
+import { trustSafeguards } from "@/lib/copy/trust";
 
 const howItWorksSteps = [
   {
@@ -44,110 +43,69 @@ const userFeatureHighlights = [
   },
 ];
 
-const spotlightProducts = products
-  .slice()
-  .sort((a, b) => b.rating - a.rating)
-  .slice(0, 3);
-
-const milestonePreview = defaultMilestones.slice(0, 3);
-
 export default function Home() {
   return (
     <div className="min-h-screen bg-[var(--baby-neutral-50)] text-[var(--dreambaby-text)]">
       <Navigation />
 
-      <header className="relative overflow-hidden border-b border-[rgba(207,210,198,0.4)] pt-28">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white via-[rgba(229,239,255,0.4)] to-[rgba(252,245,233,0.6)]" />
-        <div className="absolute -right-32 top-12 -z-10 hidden h-72 w-72 rounded-full bg-[rgba(161,180,192,0.18)] blur-3xl md:block" />
+      <div>
+        <header className="relative overflow-hidden border-b border-[rgba(207,210,198,0.4)] bg-white/95 pt-28 shadow-[0_16px_40px_rgba(111,144,153,0.12)] backdrop-blur">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white via-[rgba(229,239,255,0.35)] to-[rgba(252,245,233,0.5)]" />
+          <div className="absolute -right-32 top-12 -z-10 hidden h-72 w-72 rounded-full bg-[rgba(161,180,192,0.18)] blur-3xl md:block" />
 
-        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 pb-14 pt-10 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-start lg:gap-16">
-          <div className="space-y-6">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--dreambaby-muted)] shadow-sm">
-              {heroCopy.overline}
-            </span>
-            <h1 className="text-4xl font-semibold tracking-tight text-[var(--dreambaby-text)] sm:text-5xl">
-              {heroCopy.title}
-            </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-[var(--dreambaby-muted)]">
-              {heroCopy.subtitle}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href={heroCopy.primaryCta.href} className="dreambaby-button">
-                <span>{heroCopy.primaryCta.label}</span>
-                <span aria-hidden>→</span>
-              </Link>
-              <Link href={heroCopy.secondaryCta.href} className="dreambaby-button-secondary">
-                <span>{heroCopy.secondaryCta.label}</span>
-                <span aria-hidden>↗</span>
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            <div className="overflow-hidden rounded-3xl border border-[var(--baby-neutral-200)] bg-white/90 shadow-[0_24px_60px_rgba(111,144,153,0.16)]">
-              <div className="relative overflow-hidden rounded-3xl">
-                <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[rgba(207,224,255,0.32)] blur-3xl" />
-                <Image
-                  src="/assets/hero-abstract.svg"
-                  alt="Soft abstract illustration representing the Nestlings planning experience"
-                  width={520}
-                  height={300}
-                  priority
-                  className="h-full w-full object-cover"
-                />
+          <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 pb-14 pt-10 lg:grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start lg:gap-16">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--dreambaby-muted)] shadow-sm">
+                {heroCopy.overline}
+              </span>
+              <h1 className="text-4xl font-semibold tracking-tight text-[var(--dreambaby-text)] sm:text-5xl">
+                {heroCopy.title}
+              </h1>
+              <p className="max-w-xl text-lg leading-relaxed text-[var(--dreambaby-muted)]">
+                {heroCopy.subtitle}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link href={heroCopy.primaryCta.href} className="dreambaby-button">
+                  <span>{heroCopy.primaryCta.label}</span>
+                  <span aria-hidden>→</span>
+                </Link>
+                <Link href={heroCopy.secondaryCta.href} className="dreambaby-button-secondary">
+                  <span>{heroCopy.secondaryCta.label}</span>
+                  <span aria-hidden>↗</span>
+                </Link>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-[var(--baby-neutral-200)] bg-white/95 p-6 shadow-[0_16px_40px_rgba(111,144,153,0.1)] backdrop-blur">
-              <p className="text-sm font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                We tackle these headaches
-              </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {heroCopy.proofPoints.map((point) => (
-                  <div key={point.title} className="flex items-start gap-3 rounded-2xl border border-[rgba(111,144,153,0.14)] bg-white/90 px-4 py-3">
-                    <span className="mt-1 inline-flex size-7 items-center justify-center rounded-full bg-[rgba(111,144,153,0.12)] text-base text-[var(--baby-primary-500)]" aria-hidden>
-                      ✓
-                    </span>
-                    <div className="space-y-1">
-                      <p className="font-semibold leading-snug text-[var(--dreambaby-text)]">{point.title}</p>
-                      {point.description && (
-                        <p className="text-xs leading-relaxed text-[var(--dreambaby-muted)]">{point.description}</p>
-                      )}
+            <div className="flex flex-col gap-6">
+              <div className="rounded-3xl border border-[var(--baby-neutral-200)] bg-white/95 p-6 shadow-[0_16px_40px_rgba(111,144,153,0.1)] backdrop-blur lg:p-10">
+                <p className="text-sm font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+                  We tackle these headaches
+                </p>
+                <div className="mt-6 grid gap-4">
+                  {heroCopy.proofPoints.map((point) => (
+                    <div
+                      key={point.title}
+                      className="flex items-start gap-3 rounded-2xl border border-[rgba(111,144,153,0.14)] bg-white/92 px-5 py-4"
+                    >
+                      <span className="mt-1 inline-flex size-8 items-center justify-center rounded-full bg-[rgba(111,144,153,0.12)] text-lg" aria-hidden>
+                        {point.emoji ?? "✓"}
+                      </span>
+                      <div className="space-y-1">
+                        <p className="font-semibold leading-snug text-[var(--dreambaby-text)]">{point.title}</p>
+                        {point.description && (
+                          <p className="text-xs leading-relaxed text-[var(--dreambaby-muted)]">{point.description}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-16">
-        <section className="grid gap-6 rounded-3xl border border-[var(--baby-neutral-300)] bg-white p-8 shadow-sm md:grid-cols-3">
-          {sectionNavItems.map((section) => (
-            <article key={section.id} className="space-y-3">
-              <h2 className="text-lg font-semibold text-[var(--dreambaby-text)]">{section.label}</h2>
-              <p className="text-sm text-[var(--dreambaby-muted)]">
-                {section.id === "overview"
-                  ? "Track every milestone and know exactly what to prepare next."
-                  : section.id === "curated"
-                    ? "Compare AI-curated gear lists that match your budget and style."
-                    : section.id === "profile"
-                      ? "Keep your family preferences, due dates, and caregiver notes in sync."
-                      : "Tour the workflow in minutes with guided highlights before you sign in."}
-              </p>
-              <Link
-                href={section.href}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--baby-primary-500)] hover:text-[var(--baby-primary-600)]"
-              >
-                Explore {section.label.toLowerCase()}
-                <span aria-hidden>→</span>
-              </Link>
-            </article>
-          ))}
-        </section>
-
-        <section className="mt-16 rounded-3xl border border-[var(--baby-neutral-200)] bg-white p-8 shadow-sm">
+        <main className="mx-auto max-w-6xl px-6 py-16">
+        <section className="mx-auto mt-16 max-w-6xl rounded-3xl border border-[var(--baby-neutral-200)] bg-white p-8 shadow-sm">
           <header className="space-y-2 text-center">
             <span className="inline-flex items-center gap-2 rounded-full bg-[var(--baby-primary-50)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--baby-primary-600)]">
               Designed for busy parents
@@ -176,7 +134,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-16 rounded-3xl bg-gradient-to-r from-[rgba(249,241,231,0.65)] via-white to-[rgba(229,239,255,0.7)] p-8 shadow-sm">
+        <section className="mt-16 rounded-3xl bg-gradient-to-r from-[rgba(249,241,231,0.65)] via-white to-[rgba(229,239,255,0.7)] p-8 shadow-sm snap-start snap-always">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-xl space-y-4">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--dreambaby-muted)]">
@@ -197,142 +155,47 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="flex w-full flex-col gap-4">
-              <div className="overflow-hidden rounded-3xl border border-[var(--baby-neutral-200)] bg-white/95 shadow-sm">
-                <Image
-                  src="/assets/how-it-works-diagram.svg"
-                  alt="Diagram showing how Nestlings flows from profile to planner to catalog"
-                  width={560}
-                  height={200}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                {howItWorksSteps.map((step, index) => (
-                  <div
-                    key={step.title}
-                    className="space-y-2 rounded-2xl border border-[var(--baby-neutral-200)] bg-white/95 p-4 text-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                        {step.title}
-                      </p>
-                      {index === 0 ? (
-                        <Image src="/assets/advisor-abstract.svg" alt="Conversation bubble icon" width={48} height={28} />
-                      ) : index === 1 ? (
-                        <Image src="/assets/timeline-abstract.svg" alt="Milestone timeline icon" width={48} height={28} />
-                      ) : (
-                        <Image src="/assets/list-abstract.svg" alt="Curated checklist icon" width={48} height={28} />
-                      )}
-                    </div>
-                    <p className="text-[var(--dreambaby-text)]">{step.description}</p>
+            <div className="grid w-full gap-4 sm:grid-cols-3">
+              {howItWorksSteps.map((step, index) => (
+                <div
+                  key={step.title}
+                  className="space-y-2 rounded-2xl border border-[var(--baby-neutral-200)] bg-white/95 p-4 text-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+                      {step.title}
+                    </p>
+                    {index === 0 ? (
+                      <Image src="/assets/advisor-abstract.svg" alt="Conversation bubble icon" width={48} height={28} />
+                    ) : index === 1 ? (
+                      <Image src="/assets/timeline-abstract.svg" alt="Milestone timeline icon" width={48} height={28} />
+                    ) : (
+                      <Image src="/assets/list-abstract.svg" alt="Curated checklist icon" width={48} height={28} />
+                    )}
                   </div>
-                ))}
-              </div>
+                  <p className="text-[var(--dreambaby-text)]">{step.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {spotlightProducts.length > 0 && (
-          <section className="mt-16 rounded-3xl border border-[var(--baby-neutral-300)] bg-white p-8 shadow-sm">
-            <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-[var(--dreambaby-text)]">Product spotlight</h2>
-                <p className="text-sm text-[var(--dreambaby-muted)]">
-                  Freshly recommended gear pulled from our curated catalog.
-                </p>
-              </div>
-              <Link
-                href="/curated"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--baby-primary-200)] px-4 py-2 text-sm font-semibold text-[var(--baby-primary-500)] hover:border-[var(--baby-primary-300)] hover:text-[var(--baby-primary-600)]"
-              >
-                View curated lists
-                <span aria-hidden>→</span>
-              </Link>
-            </header>
-
-            <div className="mt-6 grid gap-6 md:grid-cols-3">
-              {spotlightProducts.map((product) => {
-                const milestone = product.milestoneIds[0]
-                  ? defaultMilestones.find((item) => item.id === product.milestoneIds[0])
-                  : undefined;
-
-                return (
-                  <article
-                    key={product.id}
-                    className="space-y-3 rounded-2xl border border-[var(--baby-neutral-200)] bg-[var(--baby-neutral-50)]/70 p-5 shadow-sm"
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                      {milestone ? milestone.label : "All milestones"}
-                    </p>
-                    <h3 className="text-lg font-semibold text-[var(--dreambaby-text)]">{product.name}</h3>
-                    <p className="text-sm text-[var(--dreambaby-muted)]">
-                      {product.brand} · ${product.price.toFixed(0)}
-                    </p>
-                    <p className="text-sm text-[var(--dreambaby-text)]">{product.reviewSummary}</p>
-                    <div className="flex items-center gap-3 text-xs text-[var(--dreambaby-muted)]">
-                      <span>⭐ {product.rating.toFixed(1)}</span>
-                      <span>•</span>
-                      <span>{product.category}</span>
-                      {product.isEcoFriendly && (
-                        <span className="rounded-full bg-[var(--baby-primary-100)] px-2 py-0.5 text-[var(--baby-primary-600)]">
-                          Eco
-                        </span>
-                      )}
-                    </div>
-                    <Link
-                      href={product.affiliateUrl || "/curated"}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--baby-primary-500)] hover:text-[var(--baby-primary-600)]"
-                    >
-                      View details
-                      <span aria-hidden>→</span>
-                    </Link>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        <section className="mt-16 rounded-3xl border border-[var(--baby-neutral-200)] bg-[rgba(248,252,255,0.85)] p-8 shadow-sm">
-          <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <section className="mt-16 rounded-3xl border border-[var(--baby-neutral-200)] bg-white p-8 shadow-sm snap-start snap-always">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,0.6fr)_minmax(0,1fr)] lg:items-start">
             <div>
-              <h2 className="text-xl font-semibold text-[var(--dreambaby-text)]">Upcoming milestone preview</h2>
-              <p className="text-sm text-[var(--dreambaby-muted)]">
-                A quick look at the guidance you will see inside the planner.
+              <span className="inline-flex items-center gap-2 rounded-full bg-[var(--baby-primary-50)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--baby-primary-600)]">
+                Trust matters
+              </span>
+              <h2 className="mt-3 text-2xl font-semibold text-[var(--dreambaby-text)]">Trust & safeguarding commitments</h2>
+              <p className="mt-2 max-w-xl text-sm text-[var(--dreambaby-muted)]">
+                We built Nestlings Planner to keep your family information private, product picks reliable, and AI guidance grounded. Explore the commitments that keep each dashboard interaction safe.
               </p>
             </div>
-            <Link
-              href="/overview"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--baby-primary-500)] hover:text-[var(--baby-primary-600)]"
-            >
-              Open the timeline
-              <span aria-hidden>→</span>
-            </Link>
-          </header>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-3">
-            {milestonePreview.map((milestone) => (
-              <article
-                key={milestone.id}
-                className="space-y-3 rounded-2xl border border-[var(--baby-neutral-200)] bg-white/85 p-5"
-              >
-                <span className="inline-flex items-center gap-2 rounded-full bg-[var(--baby-primary-50)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--baby-primary-600)]">
-                  {milestone.monthRange[0]}–{milestone.monthRange[1]} months
-                </span>
-                <h3 className="text-lg font-semibold text-[var(--dreambaby-text)]">{milestone.label}</h3>
-                <p className="text-sm text-[var(--dreambaby-muted)]">{milestone.description}</p>
-                {milestone.planningTips?.[0] && (
-                  <p className="text-sm text-[var(--dreambaby-text)]">
-                    Tip: {milestone.planningTips[0]}
-                  </p>
-                )}
-              </article>
-            ))}
+            <TrustCarousel items={trustSafeguards} />
           </div>
         </section>
       </main>
+      </div>
     </div>
   );
 }

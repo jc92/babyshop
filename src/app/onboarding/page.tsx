@@ -11,6 +11,7 @@ import {
   type OnboardingDraft,
 } from "@/lib/profile/onboardingDraft";
 import { defaultProfile } from "@/data/preferences";
+import { formatDateForDisplay } from "@/lib/dateCalculations";
 
 const householdOptions = [
   "Apartment",
@@ -244,15 +245,10 @@ export default function OnboardingPage() {
   }, [currentStep.id, form]);
 
   const babySummary = useMemo(() => {
+    const formattedDueDate = formatDateForDisplay(form.dueDate ?? null);
     const pieces = [
       form.babyName || form.babyNickname || "Baby",
-      form.dueDate
-        ? `Arriving ${new Date(form.dueDate).toLocaleDateString(undefined, {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}`
-        : null,
+      formattedDueDate ? `Arriving ${formattedDueDate}` : null,
     ].filter(Boolean) as string[];
 
     return pieces.join(" · ");

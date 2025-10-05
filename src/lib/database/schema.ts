@@ -119,6 +119,29 @@ export async function ensureUserTables() {
   await sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS parent_two_name TEXT;`;
 }
 
+export async function ensureScrapeConfigTable() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS scrape_allowed_hosts (
+      id SERIAL PRIMARY KEY,
+      hostname_pattern TEXT NOT NULL UNIQUE,
+      is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      notes TEXT,
+      created_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`ALTER TABLE scrape_allowed_hosts ADD COLUMN IF NOT EXISTS notes TEXT;`;
+  await sql`ALTER TABLE scrape_allowed_hosts ADD COLUMN IF NOT EXISTS created_by TEXT;`;
+  await sql`ALTER TABLE scrape_allowed_hosts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();`;
+
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_scrape_allowed_hosts_enabled
+    ON scrape_allowed_hosts(is_enabled)
+  `;
+}
+
 export async function ensureMilestonesTable() {
   await sql`
     CREATE TABLE IF NOT EXISTS milestones (
@@ -309,6 +332,15 @@ export async function ensureProductsSchema() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS advisor_chat_states (
+      user_id TEXT PRIMARY KEY REFERENCES users(clerk_id) ON DELETE CASCADE,
+      state JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_products_start_date ON products(start_date);`;
@@ -320,11 +352,13 @@ export async function ensureProductsSchema() {
   await sql`CREATE INDEX IF NOT EXISTS idx_user_interactions_user_id ON user_product_interactions(user_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON product_reviews(product_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_product_reviews_source ON product_reviews(source);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_advisor_chat_states_updated_at ON advisor_chat_states(updated_at);`;
 }
 
 export async function prepareCoreDatabase() {
   await ensureDatabaseExtensions();
   await ensureUserTables();
+  await ensureScrapeConfigTable();
   await ensureMilestonesTable();
   await seedMilestonesFromDefaults();
   await ensureProductsSchema();

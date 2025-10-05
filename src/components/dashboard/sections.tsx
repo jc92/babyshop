@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { SignInButton } from "@clerk/nextjs";
-import { type Dispatch, type SetStateAction, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { clerkEnabled, useSafeUser } from "@/lib/clerkClient";
 import {
   type Milestone,
@@ -16,7 +16,141 @@ import { type PreferenceProfile } from "@/data/preferences";
 import { defaultBabyProfile, type RecommendedProduct } from "@/hooks/useDashboardData";
 import { formatDateForDisplay } from "@/lib/dateCalculations";
 
-type CurrentMilestoneCardProps = {
+type FocusSection = {
+  title: string;
+  items: readonly string[] | null | undefined;
+};
+
+const buildFocusSections = (milestone: Milestone): FocusSection[] => [
+  { title: "Baby focus", items: milestone.babyFocus },
+  { title: "Caregiver focus", items: milestone.caregiverFocus },
+  { title: "Home setup", items: milestone.environmentFocus },
+  { title: "Health checklist", items: milestone.healthChecklist },
+  { title: "Planning tips", items: milestone.planningTips },
+];
+
+const focusEmojis: Record<string, string> = {
+  "Baby focus": "👶",
+  "Caregiver focus": "🤝",
+  "Home setup": "🏡",
+  "Health checklist": "🩺",
+  "Planning tips": "🗒️",
+};
+
+type MilestoneFocusHighlightsProps = {
+  sections: FocusSection[];
+  summary?: string | null;
+};
+
+function MilestoneFocusHighlights({ sections, summary }: MilestoneFocusHighlightsProps) {
+  const trimmedSummary = summary?.trim() ?? "";
+  const focusEntries = sections
+    .map((section) => {
+      const items = section.items?.filter(Boolean) ?? [];
+      if (items.length === 0) {
+        return null;
+      }
+
+      return {
+        title: section.title,
+        items,
+      };
+    })
+    .filter((entry): entry is { title: string; items: string[] } => entry !== null);
+
+  const [activeTitle, setActiveTitle] = useState<string | null>(focusEntries[0]?.title ?? null);
+
+  useEffect(() => {
+    if (focusEntries.length === 0) {
+      setActiveTitle(null);
+      return;
+    }
+
+    if (!activeTitle || !focusEntries.some((entry) => entry.title === activeTitle)) {
+      setActiveTitle(focusEntries[0]?.title ?? null);
+    }
+  }, [focusEntries, activeTitle]);
+
+  if (!trimmedSummary && focusEntries.length === 0) {
+    return null;
+  }
+
+  const activeEntry =
+    focusEntries.find((entry) => entry.title === activeTitle) ?? focusEntries[0] ?? null;
+
+  return (
+    <div className="space-y-4 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm">
+      <header className="space-y-2">
+        <h3 className="text-lg font-semibold text-[var(--dreambaby-text)]">What to expect this stage</h3>
+        <p className="text-sm text-[var(--dreambaby-muted)]">
+          Highlights pulled directly from the milestone record so your prep work stays on track.
+        </p>
+      </header>
+
+      {trimmedSummary ? (
+        <p className="rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-6 text-base leading-relaxed text-[var(--dreambaby-text)]">
+          {trimmedSummary}
+        </p>
+      ) : null}
+
+      {focusEntries.length > 0 ? (
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <nav
+            className="flex gap-2 overflow-x-auto pb-1 text-sm text-[var(--dreambaby-muted)] lg:w-48 lg:flex-col lg:gap-3 lg:overflow-visible lg:pb-0"
+            aria-label="Focus area navigation"
+          >
+            <p className="hidden text-xs font-medium uppercase tracking-[0.24em] text-[var(--dreambaby-muted)] lg:block">
+              Click a focus area to explore ✨
+            </p>
+            {focusEntries.map((entry) => {
+              const isActive = entry.title === activeEntry?.title;
+              const emoji = focusEmojis[entry.title] ?? "⭐️";
+              return (
+                <button
+                  key={entry.title}
+                  type="button"
+                  onClick={() => setActiveTitle(entry.title)}
+                  className={`min-w-[160px] rounded-2xl border px-4 py-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--baby-primary-400)] ${
+                    isActive
+                      ? "border-[var(--baby-primary-300)] bg-[var(--baby-primary-100)] text-[var(--dreambaby-text)] shadow-sm"
+                      : "border-[var(--baby-neutral-300)] bg-white hover:border-[var(--baby-primary-200)] hover:text-[var(--dreambaby-text)]"
+                  }`}
+                  aria-pressed={isActive}
+                >
+                  <span className="mr-2" aria-hidden>
+                    {emoji}
+                  </span>
+                  {entry.title}
+                </button>
+              );
+            })}
+          </nav>
+
+          {activeEntry ? (
+            <article className="flex-1 space-y-4 rounded-3xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-8 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center justify-center rounded-full bg-[var(--baby-primary-100)] px-2 py-1 text-base" aria-hidden>
+                  {focusEmojis[activeEntry.title] ?? "⭐️"}
+                </span>
+                <h4 className="text-lg font-semibold text-[var(--dreambaby-text)]">{activeEntry.title}</h4>
+              </div>
+              <ul className="space-y-3 text-base leading-7 text-[var(--dreambaby-text)]">
+                {activeEntry.items.map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span className="mt-2 inline-block size-2 flex-shrink-0 rounded-full bg-[var(--baby-primary-300)]" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export type CurrentMilestoneCardProps = {
   milestone: Milestone;
   products: ProductSummary[];
   budgetLabel: string;
@@ -29,7 +163,7 @@ type CurrentMilestoneCardProps = {
   disableSticky?: boolean;
 };
 
-function CurrentMilestoneCard({
+export function CurrentMilestoneCard({
   milestone,
   products,
   budgetLabel,
@@ -45,49 +179,18 @@ function CurrentMilestoneCard({
   const hasPrev = Boolean(previousMilestone && onSelectMilestone);
   const hasNext = Boolean(nextMilestone && onSelectMilestone);
   const topCategories = Array.from(new Set(products.map((product) => product.category))).slice(0, 3);
-  const containerBase = "flex flex-col gap-5 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm";
+  const containerBase =
+    "flex flex-col gap-4 rounded-3xl border border-[rgba(207,210,198,0.25)] bg-white/95 p-5 shadow-[0_18px_38px_-28px_rgba(30,52,70,0.4)]";
   const containerClass = disableSticky ? containerBase : `${containerBase} lg:sticky lg:top-6`;
-
-  const highlightTiles = [
-    {
-      label: "Baby focus",
-      icon: "👶",
-      items: milestone.babyFocus,
-    },
-    {
-      label: "Caregiver focus",
-      icon: "🤝",
-      items: milestone.caregiverFocus,
-    },
-    {
-      label: "Home setup",
-      icon: "🏠",
-      items: milestone.environmentFocus,
-    },
-    {
-      label: "Health",
-      icon: "🩺",
-      items: milestone.healthChecklist,
-    },
-    {
-      label: "Planning",
-      icon: "🗒️",
-      items: milestone.planningTips,
-    },
-  ]
-    .map((section) => section.items?.[0] ? { ...section, summary: section.items[0] } : null)
-    .filter(
-      (section): section is { label: string; icon: string; items?: string[]; summary: string } => Boolean(section),
-    );
 
   return (
     <section className={containerClass}>
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
+      <header className="space-y-1.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-[var(--dreambaby-muted)]">
           Current milestone
         </p>
-        <h2 className="text-xl font-semibold text-[var(--dreambaby-text)]">{milestone.label}</h2>
-        <p className="text-sm text-[var(--dreambaby-muted)]">{milestone.description}</p>
+        <h2 className="text-lg font-semibold text-[var(--dreambaby-text)]">{milestone.label}</h2>
+        <p className="text-xs leading-relaxed text-[var(--dreambaby-muted)]">{milestone.description}</p>
         {(babyLabel || dueDateLabel) && (
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-100)] px-3 py-1 text-xs font-medium text-[var(--dreambaby-muted)]">
             <span className="inline-flex size-1.5 rounded-full bg-[var(--baby-primary-400)]" />
@@ -97,15 +200,15 @@ function CurrentMilestoneCard({
         )}
       </header>
 
-      <div className="space-y-3 text-sm text-[var(--dreambaby-muted)]">
+      <div className="space-y-2 text-xs text-[var(--dreambaby-muted)]">
         <div className="rounded-xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">Timeline window</p>
-          <p className="text-[var(--dreambaby-text)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-[var(--dreambaby-muted)]">Timeline window</p>
+          <p className="text-sm text-[var(--dreambaby-text)]">
             {milestone.monthRange[0]}–{milestone.monthRange[1]} months · {queuedCount} curated items queued
           </p>
         </div>
         <div className="rounded-xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">Top categories</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-[var(--dreambaby-muted)]">Top categories</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--dreambaby-muted)]">
             {topCategories.length > 0 ? (
               topCategories.map((area) => (
@@ -123,30 +226,10 @@ function CurrentMilestoneCard({
           </div>
         </div>
         <div className="rounded-xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">Plan summary</p>
-          <p className="text-[var(--dreambaby-text)]">{budgetLabel}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-[var(--dreambaby-muted)]">Plan summary</p>
+          <p className="text-sm text-[var(--dreambaby-text)]">{budgetLabel}</p>
           <p className="text-xs leading-relaxed">{budgetDescription}</p>
         </div>
-        {highlightTiles.length > 0 && (
-          <div className="grid gap-3 rounded-xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-              Key prep calls
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {highlightTiles.map((section) => (
-                <div key={section.label} className="flex items-start gap-3 rounded-2xl border border-white bg-white px-3 py-2 shadow-sm">
-                  <span aria-hidden className="text-lg">{section.icon}</span>
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                      {section.label}
-                    </p>
-                    <p className="text-xs leading-relaxed text-[var(--dreambaby-muted)]">{section.summary}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {onSelectMilestone && (
@@ -186,6 +269,7 @@ type MilestoneSummarySectionProps = {
   babyProfile?: typeof defaultBabyProfile;
   profile?: PreferenceProfile;
   showRecommendations?: boolean;
+  showCurrentMilestoneCard?: boolean;
 };
 
 export function MilestoneSummarySection({
@@ -202,6 +286,7 @@ export function MilestoneSummarySection({
   babyProfile,
   profile,
   showRecommendations = true,
+  showCurrentMilestoneCard = true,
 }: MilestoneSummarySectionProps) {
   const orderedMilestones = milestoneList ?? [];
   const currentIndex = activeMilestoneId
@@ -250,13 +335,7 @@ export function MilestoneSummarySection({
     );
   }
 
-  const focusSections = [
-    { title: "Baby focus", items: milestone.babyFocus },
-    { title: "Caregiver focus", items: milestone.caregiverFocus },
-    { title: "Home setup", items: milestone.environmentFocus },
-    { title: "Health checklist", items: milestone.healthChecklist },
-    { title: "Planning tips", items: milestone.planningTips },
-  ];
+  const focusSections = buildFocusSections(milestone);
 
   const hasFocusContent = Boolean(
     (milestone.summary && milestone.summary.trim().length > 0) ||
@@ -266,59 +345,35 @@ export function MilestoneSummarySection({
   if (!showRecommendations) {
     return (
       <section className="space-y-8">
-        <CurrentMilestoneCard
-          milestone={milestone}
-          products={products}
-          budgetLabel={budgetLabel}
-          budgetDescription={budgetDescription}
-          previousMilestone={previousMilestone ?? undefined}
-          nextMilestone={nextMilestone ?? undefined}
-          onSelectMilestone={onSelectMilestone}
-          babyLabel={babyDisplayName}
-          dueDateLabel={dueDateLabel}
-          disableSticky
-        />
-
-        {hasFocusContent && (
-          <div className="space-y-4 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm">
-            <header className="space-y-2">
-              <h3 className="text-lg font-semibold text-[var(--dreambaby-text)]">What to expect this stage</h3>
-              <p className="text-sm text-[var(--dreambaby-muted)]">
-                Highlights pulled directly from the milestone record so your prep work stays on track.
-              </p>
-            </header>
-
-            {milestone.summary ? (
-              <p className="rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-4 text-sm leading-relaxed text-[var(--dreambaby-text)]">
-                {milestone.summary}
-              </p>
-            ) : null}
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {focusSections.map((section) => {
-                if (!section.items || section.items.length === 0) {
-                  return null;
-                }
-
-                return (
-                  <div key={section.title} className="space-y-2 rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-4">
-                    <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                      {section.title}
-                    </h4>
-                    <ul className="space-y-2 text-sm text-[var(--dreambaby-text)]">
-                      {section.items.map((item) => (
-                        <li key={item} className="flex gap-2">
-                          <span className="mt-1 inline-block size-1.5 flex-shrink-0 rounded-full bg-[var(--baby-primary-300)]" />
-                          <span className="leading-relaxed">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
+        <div
+          className={`grid gap-8 ${showCurrentMilestoneCard ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start" : ""}`}
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--dreambaby-muted)]">
+              Dashboard overview
+            </p>
+            {hasFocusContent && (
+              <MilestoneFocusHighlights sections={focusSections} summary={milestone.summary} />
+            )}
           </div>
-        )}
+
+          {showCurrentMilestoneCard ? (
+            <div className="lg:justify-self-end lg:w-full lg:max-w-[320px]">
+              <CurrentMilestoneCard
+                milestone={milestone}
+                products={products}
+                budgetLabel={budgetLabel}
+                budgetDescription={budgetDescription}
+                previousMilestone={previousMilestone ?? undefined}
+                nextMilestone={nextMilestone ?? undefined}
+                onSelectMilestone={onSelectMilestone}
+                babyLabel={babyDisplayName}
+                dueDateLabel={dueDateLabel}
+                disableSticky
+              />
+            </div>
+          ) : null}
+        </div>
 
         <div className="flex justify-end">
           <button
@@ -334,76 +389,42 @@ export function MilestoneSummarySection({
   }
 
   return (
-    <section className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-      <CurrentMilestoneCard
-        milestone={milestone}
-        products={products}
-        budgetLabel={budgetLabel}
-        budgetDescription={budgetDescription}
-        previousMilestone={previousMilestone ?? undefined}
-        nextMilestone={nextMilestone ?? undefined}
-        onSelectMilestone={onSelectMilestone}
-        babyLabel={babyDisplayName}
-        dueDateLabel={dueDateLabel}
-      />
-
-      <section className="space-y-6 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm">
-        <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="text-xl font-semibold text-[var(--dreambaby-text)]">Milestone insights</h3>
-            <p className="text-sm text-[var(--dreambaby-muted)]">
-              Tailored picks, notes, and planning nudges for this stage.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onNavigateToCurated}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--baby-primary-200)] bg-white px-4 py-2 text-sm font-semibold text-[var(--baby-primary-500)] shadow-sm transition hover:border-[var(--baby-primary-300)] hover:text-[var(--baby-primary-600)]"
-          >
-            Explore curated picks →
-          </button>
-        </header>
-
+    <section
+      className={`grid gap-8 ${showCurrentMilestoneCard ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start" : ""}`}
+    >
+      <div className="space-y-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--dreambaby-muted)]">
+          Dashboard overview
+        </p>
         {hasFocusContent && (
-          <div className="space-y-4 rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-5">
-            {milestone.summary && (
-              <p className="text-sm text-[var(--dreambaby-text)]">{milestone.summary}</p>
-            )}
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {focusSections.map((section) => {
-                if (!section.items || section.items.length === 0) {
-                  return null;
-                }
-
-                return (
-                  <div key={section.title} className="space-y-2">
-                    <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--dreambaby-muted)]">
-                      {section.title}
-                    </h4>
-                    <ul className="space-y-2 text-sm text-[var(--dreambaby-text)]">
-                      {section.items.map((item) => (
-                        <li key={item} className="flex gap-2">
-                          <span className="mt-1 inline-block size-1.5 flex-shrink-0 rounded-full bg-[var(--baby-primary-300)]" />
-                          <span className="leading-relaxed">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <MilestoneFocusHighlights sections={focusSections} summary={milestone.summary} />
         )}
 
-        <div className="rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-5">
-          <h4 className="text-base font-semibold text-[var(--dreambaby-text)]">Recommended items</h4>
-          <ul className="mt-4 space-y-3 text-sm text-[var(--dreambaby-text)]">
-            {productsLoading ? (
-              <li className="rounded-lg border border-[var(--baby-neutral-300)] bg-white p-3 text-center text-[var(--dreambaby-muted)]">
-                Loading products…
-              </li>
-            ) : products.length === 0 ? (
+        <section className="space-y-6 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm">
+          <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-xl font-semibold text-[var(--dreambaby-text)]">Milestone insights</h3>
+              <p className="text-sm text-[var(--dreambaby-muted)]">
+                Tailored picks, notes, and planning nudges for this stage.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onNavigateToCurated}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--baby-primary-200)] bg-white px-4 py-2 text-sm font-semibold text-[var(--baby-primary-500)] shadow-sm transition hover:border-[var(--baby-primary-300)] hover:text-[var(--baby-primary-600)]"
+            >
+              Explore curated picks →
+            </button>
+          </header>
+
+          <div className="rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-5">
+            <h4 className="text-base font-semibold text-[var(--dreambaby-text)]">Recommended items</h4>
+            <ul className="mt-4 space-y-3 text-sm text-[var(--dreambaby-text)]">
+              {productsLoading ? (
+                <li className="rounded-lg border border-[var(--baby-neutral-300)] bg-white p-3 text-center text-[var(--dreambaby-muted)]">
+                  Loading products…
+                </li>
+              ) : products.length === 0 ? (
               <li className="rounded-lg border border-[var(--baby-neutral-300)] bg-white p-3 text-center text-[var(--dreambaby-muted)]">
                 No products found for this milestone
               </li>
@@ -464,8 +485,26 @@ export function MilestoneSummarySection({
               })
             )}
           </ul>
+          </div>
+        </section>
+      </div>
+
+      {showCurrentMilestoneCard ? (
+        <div className="lg:justify-self-end lg:w-full lg:max-w-[320px]">
+          <CurrentMilestoneCard
+            milestone={milestone}
+            products={products}
+            budgetLabel={budgetLabel}
+            budgetDescription={budgetDescription}
+            previousMilestone={previousMilestone ?? undefined}
+            nextMilestone={nextMilestone ?? undefined}
+            onSelectMilestone={onSelectMilestone}
+            babyLabel={babyDisplayName}
+            dueDateLabel={dueDateLabel}
+            disableSticky
+          />
         </div>
-      </section>
+      ) : null}
     </section>
   );
 }
@@ -484,29 +523,131 @@ export function CuratedSection({
   recommended,
   truncateText,
 }: CuratedSectionProps) {
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileFiltersOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const selectedCategoryDetails = categoriesList.filter((category) =>
+    selectedCategories.includes(category.id),
+  );
+  const visibleCategorySummary = selectedCategoryDetails.slice(0, 5);
+  const hiddenCategoryCount = selectedCategoryDetails.length - visibleCategorySummary.length;
+
   return (
     <section className="space-y-6 rounded-3xl border border-[rgba(207,210,198,0.35)] bg-white p-6 shadow-sm">
-      <div className="grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-        <div className="space-y-4 rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-5">
-          <h2 className="text-base font-semibold text-[var(--dreambaby-text)]">Categories</h2>
-          <ul className="space-y-2 text-sm text-[var(--dreambaby-text)]">
+      <div className="md:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileFiltersOpen((previous) => !previous)}
+          className="flex w-full items-center justify-between rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-4 py-3 text-left text-sm font-semibold text-[var(--dreambaby-text)] shadow-sm"
+          aria-expanded={mobileFiltersOpen}
+          aria-controls="curated-mobile-filters"
+        >
+          <span>Filter categories</span>
+          <span className="flex items-center gap-2 text-xs font-medium text-[var(--dreambaby-muted)]">
+            {selectedCategories.length} selected
+            <svg
+              aria-hidden
+              viewBox="0 0 20 20"
+              fill="none"
+              className={`size-4 transition-transform ${mobileFiltersOpen ? "rotate-180" : ""}`}
+            >
+              <path
+                d="M6 8l4 4 4-4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </button>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {visibleCategorySummary.length > 0 ? (
+            visibleCategorySummary.map((category) => (
+              <span
+                key={category.id}
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--baby-neutral-300)] bg-white px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--dreambaby-muted)]"
+              >
+                <span aria-hidden>•</span>
+                {category.label}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-[var(--dreambaby-muted)]">
+              No categories selected yet.
+            </span>
+          )}
+          {hiddenCategoryCount > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--baby-neutral-300)] bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--dreambaby-text)]">
+              +{hiddenCategoryCount}
+              <span className="text-[var(--dreambaby-muted)]">more</span>
+            </span>
+          ) : null}
+        </div>
+
+        {mobileFiltersOpen ? (
+          <ul
+            id="curated-mobile-filters"
+            className="mt-3 space-y-2 rounded-2xl border border-[var(--baby-neutral-300)] bg-white p-4 text-sm text-[var(--dreambaby-text)] shadow-sm"
+          >
             {categoriesList.map((category) => {
               const isActive = selectedCategories.includes(category.id);
               return (
                 <li key={category.id}>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-md border border-[var(--baby-neutral-300)] bg-white px-3 py-2 shadow-sm transition hover:border-[var(--baby-primary-200)]">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-md border border-[var(--baby-neutral-200)] bg-[var(--baby-neutral-50)] px-3 py-2 transition hover:border-[var(--baby-primary-200)]">
                     <input
                       type="checkbox"
                       checked={isActive}
                       onChange={() => onToggleCategory(category.id)}
                       className="size-4 rounded border-[var(--baby-neutral-300)] text-[var(--baby-primary-500)] focus:ring-[var(--baby-primary-300)]"
                     />
-                    <span>{category.label}</span>
+                    <span className="text-sm text-[var(--dreambaby-text)]">{category.label}</span>
                   </label>
                 </li>
               );
             })}
           </ul>
+        ) : null}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <div className="hidden md:block">
+          <div className="space-y-4 rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] p-5">
+            <h2 className="text-base font-semibold text-[var(--dreambaby-text)]">Categories</h2>
+            <ul className="space-y-2 text-sm text-[var(--dreambaby-text)]">
+              {categoriesList.map((category) => {
+                const isActive = selectedCategories.includes(category.id);
+                return (
+                  <li key={category.id}>
+                    <label className="flex cursor-pointer items-center gap-3 rounded-md border border-[var(--baby-neutral-300)] bg-white px-3 py-2 shadow-sm transition hover:border-[var(--baby-primary-200)]">
+                      <input
+                        type="checkbox"
+                        checked={isActive}
+                        onChange={() => onToggleCategory(category.id)}
+                        className="size-4 rounded border-[var(--baby-neutral-300)] text-[var(--baby-primary-500)] focus:ring-[var(--baby-primary-300)]"
+                      />
+                      <span>{category.label}</span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -615,6 +756,8 @@ export function ProfileSection({
   saveMessage,
 }: ProfileSectionProps) {
   const [showHousehold, setShowHousehold] = useState(false);
+  const selectFieldClassName =
+    "w-full appearance-none rounded-2xl border border-[var(--baby-neutral-300)] bg-[var(--baby-neutral-50)] px-3 py-2 pr-10 text-sm text-[var(--dreambaby-text)] shadow-sm transition focus:border-[var(--baby-primary-300)] focus:outline-none focus:ring-2 focus:ring-[var(--baby-primary-100)]";
 
   const handleProfileChange = <K extends keyof PreferenceProfile>(key: K, value: PreferenceProfile[K]) => {
     setProfile((current) => ({
@@ -642,28 +785,64 @@ export function ProfileSection({
       <div className="grid gap-6 md:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm text-[var(--dreambaby-text)]">
           <span className="font-medium">Preferred budget</span>
-          <select
-            value={profile.budget}
-            onChange={(event) => handleProfileChange("budget", event.target.value as PreferenceProfile["budget"])}
-            className="rounded-md border border-[var(--baby-neutral-300)] px-3 py-2"
-          >
-            <option value="essentials">Essentials — under $120/mo</option>
-            <option value="balanced">Balanced — mix of essentials and upgrades</option>
-            <option value="premium">Premium — room for splurges</option>
-          </select>
+          <div className="relative">
+            <select
+              value={profile.budget}
+              onChange={(event) => handleProfileChange("budget", event.target.value as PreferenceProfile["budget"])}
+              className={selectFieldClassName}
+            >
+              <option value="essentials">Essentials — under $120/mo</option>
+              <option value="balanced">Balanced — mix of essentials and upgrades</option>
+              <option value="premium">Premium — room for splurges</option>
+            </select>
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--dreambaby-muted)]">
+              <svg
+                aria-hidden
+                viewBox="0 0 20 20"
+                fill="none"
+                className="size-4"
+              >
+                <path
+                  d="M5 8l5 5 5-5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </div>
         </label>
 
         <label className="flex flex-col gap-2 text-sm text-[var(--dreambaby-text)]">
           <span className="font-medium">Baby gender</span>
-          <select
-            value={profile.babyGender}
-            onChange={(event) => handleProfileChange("babyGender", event.target.value as PreferenceProfile["babyGender"])}
-            className="rounded-md border border-[var(--baby-neutral-300)] px-3 py-2"
-          >
-            <option value="surprise">Surprise</option>
-            <option value="girl">Girl</option>
-            <option value="boy">Boy</option>
-          </select>
+          <div className="relative">
+            <select
+              value={profile.babyGender}
+              onChange={(event) => handleProfileChange("babyGender", event.target.value as PreferenceProfile["babyGender"])}
+              className={selectFieldClassName}
+            >
+              <option value="surprise">Surprise</option>
+              <option value="girl">Girl</option>
+              <option value="boy">Boy</option>
+            </select>
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--dreambaby-muted)]">
+              <svg
+                aria-hidden
+                viewBox="0 0 20 20"
+                fill="none"
+                className="size-4"
+              >
+                <path
+                  d="M5 8l5 5 5-5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </div>
         </label>
 
         <label className="flex flex-col gap-2 text-sm text-[var(--dreambaby-text)]">
@@ -711,35 +890,71 @@ export function ProfileSection({
 
         <label className="flex flex-col gap-2 text-sm text-[var(--dreambaby-text)]">
           <span className="font-medium">Color palette</span>
-          <select
-            value={profile.colorPalette}
-            onChange={(event) =>
-              handleProfileChange("colorPalette", event.target.value as PreferenceProfile["colorPalette"])
-            }
-            className="rounded-md border border-[var(--baby-neutral-300)] px-3 py-2"
-          >
-            <option value="neutral">Neutral</option>
-            <option value="pastel">Pastel</option>
-            <option value="bold">Bold</option>
-            <option value="warm">Warm</option>
-            <option value="cool">Cool</option>
-          </select>
+          <div className="relative">
+            <select
+              value={profile.colorPalette}
+              onChange={(event) =>
+                handleProfileChange("colorPalette", event.target.value as PreferenceProfile["colorPalette"])
+              }
+              className={selectFieldClassName}
+            >
+              <option value="neutral">Neutral</option>
+              <option value="pastel">Pastel</option>
+              <option value="bold">Bold</option>
+              <option value="warm">Warm</option>
+              <option value="cool">Cool</option>
+            </select>
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--dreambaby-muted)]">
+              <svg
+                aria-hidden
+                viewBox="0 0 20 20"
+                fill="none"
+                className="size-4"
+              >
+                <path
+                  d="M5 8l5 5 5-5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </div>
         </label>
 
         <label className="flex flex-col gap-2 text-sm text-[var(--dreambaby-text)]">
           <span className="font-medium">Material focus</span>
-          <select
-            value={profile.materialFocus}
-            onChange={(event) =>
-              handleProfileChange("materialFocus", event.target.value as PreferenceProfile["materialFocus"])
-            }
-            className="rounded-md border border-[var(--baby-neutral-300)] px-3 py-2"
-          >
-            <option value="organic">Organic</option>
-            <option value="performance">Performance</option>
-            <option value="recycled">Recycled</option>
-            <option value="classic">Classic</option>
-          </select>
+          <div className="relative">
+            <select
+              value={profile.materialFocus}
+              onChange={(event) =>
+                handleProfileChange("materialFocus", event.target.value as PreferenceProfile["materialFocus"])
+              }
+              className={selectFieldClassName}
+            >
+              <option value="organic">Organic</option>
+              <option value="performance">Performance</option>
+              <option value="recycled">Recycled</option>
+              <option value="classic">Classic</option>
+            </select>
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--dreambaby-muted)]">
+              <svg
+                aria-hidden
+                viewBox="0 0 20 20"
+                fill="none"
+                className="size-4"
+              >
+                <path
+                  d="M5 8l5 5 5-5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </div>
         </label>
 
         <label className="flex items-center gap-2 text-sm text-[var(--dreambaby-text)]">

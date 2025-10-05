@@ -7,6 +7,8 @@ import type {
   ProductCreateResult,
   ProductCreatePayload,
   ProductSummaryAdapterInput,
+  ProductInteractionType,
+  UserProductListItem,
 } from './types';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -69,7 +71,10 @@ export class ProductDomainService {
     return toProductSummaries(result.products as ProductSummaryAdapterInput[]);
   }
 
-  static async addProduct(payload: ProductCreatePayload): Promise<ProductCreateResult> {
+  static async addProduct(
+    payload: ProductCreatePayload,
+    options: { userId?: string; interactionType?: ProductInteractionType } = {},
+  ): Promise<ProductCreateResult> {
     const normalized = normalizePayload(payload);
     if (process.env.NODE_ENV !== 'production') {
       console.log('[ProductDomainService.addProduct] Normalized payload', {
@@ -84,6 +89,11 @@ export class ProductDomainService {
 
     if (normalized.aiCategoryIds && normalized.aiCategoryIds.length > 0) {
       await ProductRepository.assignAiCategories(record.id, normalized.aiCategoryIds);
+    }
+
+    if (options.userId && record.id) {
+      const interactionType = options.interactionType ?? 'wishlist';
+      await ProductRepository.recordUserInteraction(options.userId, record.id, interactionType);
     }
     cacheService.invalidateProductCache();
 
@@ -101,5 +111,32 @@ export class ProductDomainService {
 
     cacheService.invalidateProductCache();
     return { message: 'Product removed', id: productId };
+  }
+
+  static async getUserKnownProductIds(userId: string): Promise<string[]> {
+    if (!userId) {
+      return [];
+    }
+
+    return ProductRepository.getUserKnownProductIds(userId);
+  }
+
+  static async getUserProductList(userId: string, limit?: number): Promise<UserProductListItem[]> {
+    if (!userId) {
+      return [];
+    }
+
+    return ProductRepository.getUserProductList(userId, limit);
+  }
+
+  static async rememberRecommendations(
+    userId: string,
+    items: Array<{ productId: string; reason?: string | null }>,
+  ) {
+    if (!userId) {
+      return;
+    }
+
+    await ProductRepository.saveUserRecommendations(userId, items);
   }
 }

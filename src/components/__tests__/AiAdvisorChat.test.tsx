@@ -27,7 +27,7 @@ vi.mock("@/lib/clerkClient", () => ({
 }));
 
 import { defaultMilestones } from "@/data/defaultMilestones";
-import AiAdvisorChat from "@/components/AiAdvisorChat";
+import AiAdvisorChat, { __resetAdvisorChatCacheForTests } from "@/components/AiAdvisorChat";
 
 describe("AiAdvisorChat", () => {
   beforeEach(() => {
@@ -38,7 +38,13 @@ describe("AiAdvisorChat", () => {
       isSignedIn: false,
       user: null,
     });
-    global.fetch = vi.fn();
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ data: {} }) }));
+    Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+    __resetAdvisorChatCacheForTests();
   });
 
   afterEach(() => {
@@ -83,5 +89,72 @@ describe("AiAdvisorChat", () => {
 
     const updated = screen.getByRole("status");
     expect(updated.textContent).not.toBe(initial.textContent);
+  });
+
+  it("restores the last conversation for signed-in users", async () => {
+    const storageKey = "nestlings:advisor-chat:user:user_123";
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        isOpen: true,
+        inputValue: "",
+        milestoneId: defaultMilestones[0].id,
+        messages: [
+          {
+            id: "assistant-initial",
+            role: "assistant",
+            content: "Welcome back!",
+          },
+        ],
+      }),
+    );
+
+    useSafeUserMock.mockReturnValue({
+      isLoaded: true,
+      isSignedIn: true,
+      user: { id: "user_123" },
+    });
+
+    render(<AiAdvisorChat />);
+
+    expect(await screen.findByText("Welcome back!")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /Ask Baby Advisor/i })).toBeNull();
+  });
+
+  it("reuses the in-memory cache across route-level remounts", async () => {
+    const storageKey = "nestlings:advisor-chat:user:user_123";
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        isOpen: true,
+        inputValue: "hello advisor",
+        milestoneId: defaultMilestones[1].id,
+        messages: [
+          {
+            id: "assistant-initial",
+            role: "assistant",
+            content: "Welcome back!",
+          },
+        ],
+      }),
+    );
+
+    useSafeUserMock.mockReturnValue({
+      isLoaded: true,
+      isSignedIn: true,
+      user: { id: "user_123" },
+    });
+
+    const { unmount } = render(<AiAdvisorChat />);
+
+    expect(await screen.findByText("Welcome back!")).toBeVisible();
+
+    window.localStorage.clear();
+
+    unmount();
+
+    render(<AiAdvisorChat />);
+
+    expect(await screen.findByText("Welcome back!")).toBeVisible();
   });
 });
